@@ -1,0 +1,12 @@
+# run these on python shell startup
+
+try:
+    import readline
+except ImportError:
+    pass
+else:
+    try:
+        import rlcompleter
+        readline.parse_and_bind("tab: complete")
+    except ImportError:
+        pass

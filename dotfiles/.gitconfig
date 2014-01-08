@@ -1,0 +1,30 @@
+[advice]
+    detachedHead = false
+    statusHints = false
+[alias]
+    ff = merge --ff-only HEAD@{upstream}
+    graph = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(blue)<%an>%Creset' --abbrev-commit --date=relative
+    fetchall = !git fetch $1 && git submodule foreach git fetch $1
+    pruneall = !git remote prune $1 && git submodule foreach git remote prune $1
+[core]
+    pager = less -FRSX
+[color]
+    ui = auto
+[color "diff"]
+    whitespace = red reverse
+[color "status"]
+    updated = green
+    untracked = cyan
+[diff]
+    renames = copies
+[merge]
+    defaultToUpstream = true
+[push]
+    default = upstream
+[rebase]
+    autosquash = 1
+[rerere]
+    enabled = 1
+[user]
+    name = Garrett Holmstrom
+    email = gholms@devzero.com

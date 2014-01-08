@@ -1,0 +1,296 @@
+export PATH="${PATH}:/sbin:/usr/sbin"
+export EDITOR="vim"
+export PAGER="less"
+export PYTHONSTARTUP=~/.pythonrc
+
+# Report cpu/system/user time of commands that run longer than 15 seconds
+export REPORTTIME=15
+
+# Make memory corruption bugs worse
+export MALLOC_PERTURB=240
+
+# Allow tab-completion in the middle of a word
+setopt COMPLETE_IN_WORD
+
+# Share history between zsh processes
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+
+# Always set umask=022, regardless of EUID
+umask 022
+
+# Aliases
+test -x /usr/bin/colordiff && alias diff=/usr/bin/colordiff
+
+# Keybindings:  viins mode + Home/End keys
+bindkey -e
+bindkey '^[[H'   vi-beginning-of-line
+bindkey '^[[F'   vi-end-of-line
+bindkey '^[[3~'  delete-char
+case $TERM in (xterm*)
+bindkey '\eOH'   vi-beginning-of-line
+bindkey '\eOF'   vi-end-of-line
+bindkey '^[3;5~' delete-char
+esac
+
+# Speed up bzr vcs_info
+zstyle ':vcs_info:bzr:*' use-simple true
+
+# (Re)load colours
+if [[ "$TERM" != dumb ]] ; then
+    if zrcautoload colors && colors 2>/dev/null ; then
+        BLUE="%{${fg[blue]}%}"
+        RED="%{${fg_bold[red]}%}"
+        GREEN="%{${fg[green]}%}"
+        CYAN="%{${fg[cyan]}%}"
+        MAGENTA="%{${fg[magenta]}%}"
+        YELLOW="%{${fg[yellow]}%}"
+        WHITE="%{${fg[white]}%}"
+        NO_COLOUR="%{${reset_color}%}"
+    else
+        BLUE=$'%{\e[1;34m%}'
+        RED=$'%{\e[1;31m%}'
+        GREEN=$'%{\e[1;32m%}'
+        CYAN=$'%{\e[1;36m%}'
+        WHITE=$'%{\e[1;37m%}'
+        MAGENTA=$'%{\e[1;35m%}'
+        YELLOW=$'%{\e[1;33m%}'
+        NO_COLOUR=$'%{\e[0m%}'
+    fi
+fi
+
+##################### prompt #####################
+
+# Platform-specifics
+ARCH_SYMBOL=""
+OS_COLOUR="${NO_COLOUR}"
+OS_TITLE=""
+
+if [[ -f /etc/fedora-release ]]; then
+    arch=`uname -i`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    [[ "${arch}" = 'ppc' ]] && ARCH_SYMBOL="^'"
+    [[ "${arch}" = 'ppc64' ]] && ARCH_SYMBOL="^"
+    [[ "${arch}" = 'armv5tel' ]] && ARCH_SYMBOL="+"
+    [[ "${arch}" = 'armv7hl' ]] && ARCH_SYMBOL="+"
+    uname_r=`uname -r`
+    elif [[ "$uname_r" == *fc21* ]]; then
+        OS_COLOUR="${RED}"
+        OS_TITLE="<Rawhide>"
+    elif [[ "$uname_r" == *fc20* ]]; then
+        OS_COLOUR="${MAGENTA}"
+        OS_TITLE="<Fedora 20>"
+    if [[ "$uname_r" == *fc19* ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<Fedora 19>"
+    elif [[ "$uname_r" == *fc18* ]]; then
+        OS_COLOUR="${CYAN}"
+        OS_TITLE="<Fedora 18>"
+    elif [[ "$uname_r" == *fc17* ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<Fedora 17>"
+    elif [[ "$uname_r" == *fc16* ]]; then
+        OS_COLOUR="${YELLOW}"
+        OS_TITLE="<Fedora 16>"
+    else
+        OS_TITLE="<Fedora>"
+    fi
+elif [[ -f /etc/redhat-release ]]; then
+    arch=`uname -i`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    [[ "${arch}" = 'ppc' ]] && ARCH_SYMBOL="^'"
+    [[ "${arch}" = 'ppc64' ]] && ARCH_SYMBOL="^"
+    uname_r=`uname -r`
+    if [[ "$uname_r" == *el7* ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<RHEL 7>"
+    elif [[ "$uname_r" == *el6* ]]; then
+        OS_COLOUR="${RED}"
+        OS_TITLE="<RHEL 6>"
+    elif [[ "$uname_r" == *el5* ]]; then
+        OS_COLOUR="${MAGENTA}"
+        OS_TITLE="<RHEL 5>"
+    elif [[ "$uname_r" == *el4* ]]; then
+        OS_COLOUR="${YELLOW}"
+        OS_TITLE="<RHEL 4>"
+    else
+        OS_TITLE="<RHEL>"
+    fi
+elif [[ -f /etc/SuSE-release ]]; then
+    arch=`uname -i`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    version=`sed -n -e '/VERSION/s/.*=[[:blank:]]*//p' /etc/SuSE-release`
+    if grep -qi opensuse /etc/SuSE-release; then
+        if [[ "$version" == 11.4 ]]; then
+            OS_COLOUR="${CYAN}"
+            OS_TITLE="<openSUSE 11.4>"
+        elif [[ "$version" == 11.3 ]]; then
+            OS_COLOUR="${GREEN}"
+            OS_TITLE="<openSUSE 11.3>"
+        elif [[ "$version" == 11.2 ]]; then
+            OS_COLOUR="${YELLOW}"
+            OS_TITLE="<openSUSE 11.2>"
+        else
+            OS_TITLE="<openSUSE>"
+        fi
+    else
+        OS_TITLE="<SUSE>"
+    fi
+elif [[ -f /etc/debian_version ]]; then
+    arch=`uname -m`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    [[ "${arch}" = 'armel' ]] && ARCH_SYMBOL="+"
+    version=`cat /etc/debian_version`
+    if [[ "$version" == 7.0* ]]; then
+        OS_COLOUR="${CYAN}"
+        OS_TITLE="<Debian 7.0>"
+    elif [[ "$version" == 6.0* ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<Debian 6.0>"
+    elif [[ "$version" == 5.0* ]]; then
+        OS_COLOUR="${YELLOW}"
+        OS_TITLE="<Debian 5.0>"
+    else
+        OS_TITLE="<Debian>"
+    fi
+elif [[ -f /etc/gentoo-release ]]; then
+    arch=`uname -i`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    OS_COLOUR="${GREEN}"
+    OS_TITLE="<Gentoo>"
+elif [[ $OSTYPE == darwin* ]]; then
+    arch=`uname -p`
+    [[ "${arch}" = 'powerpc' ]] && ARCH_SYMBOL="^"
+    os_major=`uname -r | cut -d. -f1`
+    if [[ "${os_major}" = 13 ]]; then
+        OS_COLOUR="${MAGENTA}"
+        OS_TITLE="<Mac OS X 10.9>"
+    elif [[ "${os_major}" = 12 ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<Mac OS X 10.8>"
+    elif [[ "${os_major}" = 11 ]]; then
+        OS_COLOUR="${CYAN}"
+        OS_TITLE="<Mac OS X 10.7>"
+    elif [[ "${os_major}" = 10 ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<Mac OS X 10.6>"
+    elif [[ "${os_major}" = 9 ]]; then
+        OS_COLOUR="${YELLOW}"
+        OS_TITLE="<Mac OS X 10.5>"
+    elif [[ "${os_major}" = 8 ]]; then
+        OS_COLOUR="${RED}"
+        OS_TITLE="<Mac OS X 10.4>"
+    else
+        OS_TITLE="<Mac OS X>"
+    fi
+elif [[ $OSTYPE == freebsd* ]]; then
+    arch=`uname -p`
+    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
+    os_ver=`uname -r | cut -d- -f1`
+    if [[ "${os_ver}" = 8.1 ]]; then
+        OS_COLOUR="${RED}"
+        OS_TITLE="<FreeBSD 8.1>"
+    elif [[ "${os_ver}" = 8.0 ]]; then
+        OS_COLOUR="${MAGENTA}"
+        OS_TITLE="<FreeBSD 8.0>"
+    elif [[ "${os_ver}" = 7.1 ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<FreeBSD 7.1>"
+    elif [[ "${os_ver}" = 7.0 ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<FreeBSD 7.0>"
+    else
+        OS_TITLE="<FreeBSD>"
+    fi
+elif [[ $OSTYPE == openbsd* ]]; then
+    arch=`uname -m`
+    [[ "${arch}" = i?86 ]] && ARCH_SYMBOL="'"
+    os_ver=`uname -r`
+    if [[ "${os_ver}" = 5.5 ]]; then
+        OS_COLOUR="${CYAN}"
+        OS_TITLE="<OpenBSD 5.5>"
+    elif [[ "${os_ver}" = 5.4 ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<OpenBSD 5.4>"
+    elif [[ "${os_ver}" = 5.3 ]]; then
+        OS_COLOUR="${YELLOW}"
+        OS_TITLE="<OpenBSD 5.3>"
+    elif [[ "${os_ver}" = 5.2 ]]; then
+        OS_COLOUR="${RED}"
+        OS_TITLE="<OpenBSD 5.2>"
+    elif [[ "${os_ver}" = 5.1 ]]; then
+        OS_COLOUR="${MAGENTA}"
+        OS_TITLE="<OpenBSD 5.1>"
+    elif [[ "${os_ver}" = 5.0 ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<OpenBSD 5.0>"
+    else
+        OS_TITLE="<OpenBSD>"
+    fi
+elif [[ $OSTYPE == osf* ]]; then
+    ARCH_SYMBOL="**"
+    if [[ `uname -r` = 'V5.1' ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<Tru64 5.1>"
+    else
+        OS_TITLE="<Tru64>"
+    fi
+elif [[ $OSTYPE == interix* ]]; then
+    uname -p | grep 64 >/dev/null || ARCH_SYMBOL="'"
+    os_ver=`uname -r`
+    if [[ "${os_ver}" = 6.1 ]]; then
+        OS_COLOUR="${BLUE}"
+        OS_TITLE="<Windows 7>"
+    elif [[ "${os_ver}" = 6.0 ]]; then
+        OS_COLOUR="${GREEN}"
+        OS_TITLE="<Windows Vista>"
+    else
+        OS_TITLE="<Windows>"
+        ##set_title ${(%):-"%n@%m <Windows>"}
+    fi
+fi
+
+EXITCODE="%(?..(%?%)%1v )"
+
+if (( GRML_VCS_INFO )); then
+    VCS_PROMPT='${VCS_INFO_message_0_}'
+else
+    VCS_PROMPT='${vcs_info_msg_0_}'
+fi
+
+if (( EUID != 0 )); then
+#    PROMPT="${NO_COLOUR}[%!] ${YELLOW}${EXITCODE}${BLUE}%n@${OS_COLOUR}%m${BLUE}${ARCH_SYMBOL} ${BLUE}%40<...<%B%~%b%<< ${VCS_PROMPT}${BLUE}%#${NO_COLOUR} "
+    PROMPT="${NO_COLOUR}[%!] ${YELLOW}${EXITCODE}${BLUE}%n@${OS_COLOUR}%m ${BLUE}%40<...<%~%<< ${VCS_PROMPT}${BLUE}%#${NO_COLOUR} "
+else
+#    PROMPT="${NO_COLOUR}[%!] ${YELLOW}${EXITCODE}${OS_COLOUR}%m${BLUE}${ARCH_SYMBOL} ${BLUE}%40<...<%B%~%b%<< ${VCS_PROMPT}${RED}%#${NO_COLOUR} "
+    PROMPT="${NO_COLOUR}[%!] ${YELLOW}${EXITCODE}${OS_COLOUR}%m ${BLUE}%40<...<%~%<< ${VCS_PROMPT}${RED}%#${NO_COLOUR} "
+fi
+
+##################### precmd #####################
+
+is4 && precmd () {
+    # update VCS information
+    vcs_info
+
+    if [[ $TERM == screen* ]] ; then
+        if [[ -n ${VCS_INFO_message_1_} ]] ; then
+            ESC_print ${VCS_INFO_message_1_}
+        elif [[ -n ${vcs_info_msg_1_} ]] ; then
+            ESC_print ${vcs_info_msg_1_}
+        else
+            ESC_print "zsh"
+        fi
+    fi
+    # adjust title of xterm
+    # see http://www.faqs.org/docs/Linux-mini/Xterm-Title.html
+    case $TERM in
+        (xterm*|rxvt*)
+            set_title ${(%):-"%n@%m ${OS_TITLE}"}
+            ;;
+    esac
+}
+
+
+#################### cleanup #####################
+
+for colour in BLUE RED GREEN CYAN YELLOW MAGENTA WHITE NO_COLOUR ; unset $colour

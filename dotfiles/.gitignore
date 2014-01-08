@@ -1,0 +1,12 @@
+*~
+.sw*
+.*.sw*
+.nfs*
+.project
+.DS_Store
+core
+core.[0123456789]*
+*.egg_info
+*.pyc
+*.pyo
+__pycache__
