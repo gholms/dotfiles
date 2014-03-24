@@ -17,6 +17,7 @@ set hlsearch     " Highlight matches
 
 set scrolloff=2  " Keep some lines at top/bottom for scope
 
+set nopaste       " Disable paste mode by default
 set backspace=indent,eol,start " Make backspace more useful in insert mode
 set shiftwidth=4  " Auto-indent width when using cindent, >>, <<, etc.
 set softtabstop=4 " Number of spaces to add/remove with tab/backspace
