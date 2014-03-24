@@ -521,10 +521,6 @@ for var in LANG LC_ALL LC_MESSAGES ; do
     [[ -n ${(P)var} ]] && export $var
 done
 
-xsource "/etc/sysconfig/keyboard"
-
-TZ=$(xcat /etc/timezone)
-
 # set some variables
 if check_com -c vim ; then
 #v#
@@ -605,8 +601,9 @@ if is4 ; then
 fi
 
 # completion system
+COMPDUMPFILE=${COMPDUMPFILE:-${ZDOTDIR:-${HOME}}/.zcompdump}
 if zrcautoload compinit ; then
-    compinit || print 'Notice: no compinit available :('
+    compinit -d ${COMPDUMPFILE} || print 'Notice: no compinit available :('
 else
     print 'Notice: no compinit available :('
     function compdef { }
@@ -1560,6 +1557,7 @@ if [[ -f ${DIRSTACKFILE} ]] && [[ ${#dirstack[*]} -eq 0 ]] ; then
 fi
 
 chpwd() {
+    if (( $DIRSTACKSIZE <= 0 )) || [[ -z $DIRSTACKFILE ]]; then return; fi
     local -ax my_stack
     my_stack=( ${PWD} ${dirstack} )
     if is42 ; then
@@ -2295,8 +2293,8 @@ fi
 
 # do we have GNU ls with color-support?
 if [[ "$TERM" != dumb ]]; then
-    #a1# List files with colors (\kbd{ls -b -CF \ldots})
-    alias ls='ls -b -CF '${ls_options:+"${ls_options[*]}"}
+    #a1# List files with colors (\kbd{ls -CF \ldots})
+    alias ls='ls -CF '${ls_options:+"${ls_options[*]}"}
     #a1# List all files, with colors (\kbd{ls -la \ldots})
     alias la='ls -la '${ls_options:+"${ls_options[*]}"}
     #a1# List files with long colored list, without dotfiles (\kbd{ls -l \ldots})
@@ -2306,7 +2304,7 @@ if [[ "$TERM" != dumb ]]; then
     #a1# List files with long colored list, append qualifier to filenames (\kbd{ls -lF \ldots})\\&\quad(\kbd{/} for directories, \kbd{@} for symlinks ...)
     alias l='ls -lF '${ls_options:+"${ls_options[*]}"}
 else
-    alias ls='ls -b -CF'
+    alias ls='ls -CF'
     alias la='ls -la'
     alias ll='ls -l'
     alias lh='ls -hAl'
