@@ -1,7 +1,7 @@
 # min hour dom month "day of week sun=0"
 
 # Periodically update all dotfiles
-0 0 * * * if [[ -d ~/src/dotfiles ]]; then cd ~/src/dotfiles/ && git pull && ./install.sh; fi
+0 0 * * * if [[ -d ~/src/dotfiles ]]; then cd ~/src/dotfiles/ && git pull -q && ./install.sh; fi
 
 # Remove old temporary stuff
 0 0 * * * if [[ -d ~/tmp ]]; then find ~/tmp -type d -ctime +28 -d -exec rm -r {} \; ; fi; # remove old directories
