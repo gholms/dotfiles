@@ -25,6 +25,10 @@
     autosquash = 1
 [rerere]
     enabled = 1
+[url "git://github.com/"]
+    insteadOf = github:
+[url "git@github.com:"]
+    pushInsteadOf = github:
 [user]
     name = Garrett Holmstrom
     email = gholms@devzero.com
