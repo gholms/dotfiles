@@ -43,21 +43,18 @@ zstyle ':vcs_info:bzr:*' use-simple true
 # or go back to using it.  We'll see.
 
 # Platform-specifics
-ARCH_SYMBOL=""
 OS_COLOR='default'
 OS_TITLE=""
 
 if [[ -f /etc/fedora-release ]]; then
     arch=`uname -i`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
-    [[ "${arch}" = 'ppc' ]] && ARCH_SYMBOL="^'"
-    [[ "${arch}" = 'ppc64' ]] && ARCH_SYMBOL="^"
-    [[ "${arch}" = 'armv5tel' ]] && ARCH_SYMBOL="+"
-    [[ "${arch}" = 'armv7hl' ]] && ARCH_SYMBOL="+"
     uname_r=`uname -r`
-    if [[ "$uname_r" == *fc21* ]]; then
+    if [[ "$uname_r" == *fc22* ]]; then
+        OS_COLOR='yellow'
+        OS_TITLE="<Fedora 22>"
+    elif [[ "$uname_r" == *fc21* ]]; then
         OS_COLOR='red'
-        OS_TITLE="<Rawhide>"
+        OS_TITLE="<Fedora 21>"
     elif [[ "$uname_r" == *fc20* ]]; then
         OS_COLOR='magenta'
         OS_TITLE="<Fedora 20>"
@@ -70,17 +67,11 @@ if [[ -f /etc/fedora-release ]]; then
     elif [[ "$uname_r" == *fc17* ]]; then
         OS_COLOR='green'
         OS_TITLE="<Fedora 17>"
-    elif [[ "$uname_r" == *fc16* ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<Fedora 16>"
     else
         OS_TITLE="<Fedora>"
     fi
 elif [[ -f /etc/redhat-release ]]; then
     arch=`uname -i`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
-    [[ "${arch}" = 'ppc' ]] && ARCH_SYMBOL="^'"
-    [[ "${arch}" = 'ppc64' ]] && ARCH_SYMBOL="^"
     uname_r=`uname -r`
     if [[ "$uname_r" == *el7* ]]; then
         OS_COLOR='green'
@@ -99,7 +90,6 @@ elif [[ -f /etc/redhat-release ]]; then
     fi
 elif [[ -f /etc/SuSE-release ]]; then
     arch=`uname -i`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
     version=`sed -n -e '/VERSION/s/.*=[[:blank:]]*//p' /etc/SuSE-release`
     if grep -qi opensuse /etc/SuSE-release; then
         if [[ "$version" == 11.4 ]]; then
@@ -119,8 +109,6 @@ elif [[ -f /etc/SuSE-release ]]; then
     fi
 elif [[ -f /etc/debian_version ]]; then
     arch=`uname -m`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
-    [[ "${arch}" = 'armel' ]] && ARCH_SYMBOL="+"
     version=`cat /etc/debian_version`
     if [[ "$version" == 7.0* ]]; then
         OS_COLOR='cyan'
@@ -136,14 +124,15 @@ elif [[ -f /etc/debian_version ]]; then
     fi
 elif [[ -f /etc/gentoo-release ]]; then
     arch=`uname -i`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
     OS_COLOR='green'
     OS_TITLE="<Gentoo>"
-elif [[ $OSTYPE == darwin* ]]; then
+elif isdarwin; then
     arch=`uname -p`
-    [[ "${arch}" = 'powerpc' ]] && ARCH_SYMBOL="^"
     os_major=`uname -r | cut -d. -f1`
-    if [[ "${os_major}" = 13 ]]; then
+    if [[ "${os_major}" = 14 ]]; then
+        OS_COLOR='red'
+        OS_TITLE="<Mac OS X 10.10>"
+    elif [[ "${os_major}" = 13 ]]; then
         OS_COLOR='magenta'
         OS_TITLE="<Mac OS X 10.9>"
     elif [[ "${os_major}" = 12 ]]; then
@@ -158,15 +147,11 @@ elif [[ $OSTYPE == darwin* ]]; then
     elif [[ "${os_major}" = 9 ]]; then
         OS_COLOR='yellow'
         OS_TITLE="<Mac OS X 10.5>"
-    elif [[ "${os_major}" = 8 ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<Mac OS X 10.4>"
     else
         OS_TITLE="<Mac OS X>"
     fi
-elif [[ $OSTYPE == freebsd* ]]; then
+elif isfreebsd; then
     arch=`uname -p`
-    [[ "${arch}" = 'i386' ]] && ARCH_SYMBOL="'"
     os_ver=`uname -r | cut -d- -f1`
     if [[ "${os_ver}" = 8.1 ]]; then
         OS_COLOR='red'
@@ -183,9 +168,8 @@ elif [[ $OSTYPE == freebsd* ]]; then
     else
         OS_TITLE="<FreeBSD>"
     fi
-elif [[ $OSTYPE == openbsd* ]]; then
+elif isopenbsd; then
     arch=`uname -m`
-    [[ "${arch}" = i?86 ]] && ARCH_SYMBOL="'"
     os_ver=`uname -r`
     if [[ "${os_ver}" = 5.5 ]]; then
         OS_COLOR='cyan'
@@ -209,24 +193,11 @@ elif [[ $OSTYPE == openbsd* ]]; then
         OS_TITLE="<OpenBSD>"
     fi
 elif [[ $OSTYPE == osf* ]]; then
-    ARCH_SYMBOL="**"
     if [[ `uname -r` = 'V5.1' ]]; then
         OS_COLOR='blue'
         OS_TITLE="<Tru64 5.1>"
     else
         OS_TITLE="<Tru64>"
-    fi
-elif [[ $OSTYPE == interix* ]]; then
-    uname -p | grep 64 >/dev/null || ARCH_SYMBOL="'"
-    os_ver=`uname -r`
-    if [[ "${os_ver}" = 6.1 ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<Windows 7>"
-    elif [[ "${os_ver}" = 6.0 ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<Windows Vista>"
-    else
-        OS_TITLE="<Windows>"
     fi
 fi
 
