@@ -7,6 +7,7 @@
     fetchall = !git fetch $1 && git submodule foreach git fetch $1
     pruneall = !git remote prune $1 && git submodule foreach git remote prune $1
 [core]
+    excludesfile = ~/.gitignore
     pager = less -FRSX
 [color]
     ui = auto
