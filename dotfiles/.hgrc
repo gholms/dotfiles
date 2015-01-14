@@ -1,0 +1,3 @@
+[ui]
+username = Garrett Holmstrom <gholms@devzero.com>
+ignore = ${HOME}/.hgignore
