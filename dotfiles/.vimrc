@@ -39,11 +39,11 @@ if version >= 703
 endif
 
 ""set t_Co=256
-""let g:solarized_termtrans=1
+let g:solarized_termtrans=1
 ""let g:solarized_termcolors=256
-""colorscheme solarized
+colorscheme solarized
 
-colorscheme peachpuff
+""colorscheme peachpuff
 
 " Highlight VCS conflict markers
 match ErrorMsg '^\(<\|=\|>\)\{7\}\([^=].\+\)\?$'
