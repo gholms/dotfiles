@@ -198,6 +198,10 @@ isopenbsd(){
     [[ $GRML_OSTYPE == "OpenBSD" ]]
 }
 
+issolaris(){
+    [[ $GRML_OSTYPE == "SunOS" ]]
+}
+
 #f1# are we running within an utf environment?
 isutfenv() {
     case "$LANG $CHARSET $LANGUAGE" in
@@ -354,12 +358,12 @@ ZSH_NO_DEFAULT_LOCALE=${ZSH_NO_DEFAULT_LOCALE:-0}
 typeset -ga ls_options
 typeset -ga grep_options
 if ls --color=auto / >/dev/null 2>&1; then
-    ls_options=( --color=auto )
+    ls_options+=( --color=auto )
 elif ls -G / >/dev/null 2>&1; then
-    ls_options=( -G )
+    ls_options+=( -G )
 fi
 if grep --color=auto -q "a" <<< "a" >/dev/null 2>&1; then
-    grep_options=( --color=auto )
+    grep_options+=( --color=auto )
 fi
 
 # utility functions
@@ -414,23 +418,22 @@ salias() {
     emulate -L zsh
     local only=0 ; local multi=0
     local key val
-    while [[ $1 == -* ]] ; do
-        case $1 in
-            (-o) only=1 ;;
-            (-a) multi=1 ;;
-            (--) shift ; break ;;
-            (-h)
-                printf 'usage: salias [-h|-o|-a] <alias-expression>\n'
+    while getopts ":hao" opt; do
+        case $opt in
+            o) only=1 ;;
+            a) multi=1 ;;
+            h)
+                printf 'usage: salias [-hoa] <alias-expression>\n'
                 printf '  -h      shows this help text.\n'
                 printf '  -a      replace '\'' ; '\'' sequences with '\'' ; sudo '\''.\n'
                 printf '          be careful using this option.\n'
                 printf '  -o      only sets an alias if a preceding sudo would be needed.\n'
                 return 0
                 ;;
-            (*) printf "unkown option: '%s'\n" "$1" ; return 1 ;;
+            *) salias -h >&2; return 1 ;;
         esac
-        shift
     done
+    shift "$((OPTIND-1))"
 
     if (( ${#argv} > 1 )) ; then
         printf 'Too many arguments %s\n' "${#argv}"
@@ -503,6 +506,7 @@ xcat() {
 xunfunction() {
     emulate -L zsh
     local -a funcs
+    local func
     funcs=(salias xcat xsource xunfunction zrcautoload zrcautozle)
     for func in $funcs ; do
         [[ -n ${functions[$func]} ]] \
@@ -527,6 +531,7 @@ fi
 for var in LANG LC_ALL LC_MESSAGES ; do
     [[ -n ${(P)var} ]] && export $var
 done
+builtin unset -v var
 
 # set some variables
 if check_com -c vim ; then
@@ -603,7 +608,7 @@ typeset -U path cdpath fpath manpath
 is4 && \
 for mod in parameter complist deltochar mathfunc ; do
     zmodload -i zsh/${mod} 2>/dev/null || print "Notice: no ${mod} available :("
-done
+done && builtin unset -v mod
 
 # autoload zsh modules when they are referenced
 if is4 ; then
@@ -768,7 +773,7 @@ grmlcomp() {
         [[ -r ~/.ssh/known_hosts ]] && _ssh_hosts=(${${${${(f)"$(<$HOME/.ssh/known_hosts)"}:#[\|]*}%%\ *}%%,*}) || _ssh_hosts=()
         [[ -r /etc/hosts ]] && : ${(A)_etc_hosts:=${(s: :)${(ps:\t:)${${(f)~~"$(</etc/hosts)"}%%\#*}##[:blank:]#[^[:blank:]]#}}} || _etc_hosts=()
     else
-        _ssh_config_hosts()
+        _ssh_config_hosts=()
         _ssh_hosts=()
         _etc_hosts=()
     fi
@@ -786,7 +791,7 @@ grmlcomp() {
     # use generic completion system for programs not yet defined; (_gnu_generic works
     # with commands that provide a --help option with "standard" gnu-like output.)
     for compcom in cp deborphan df feh fetchipac gpasswd head hnb ipacsum mv \
-                   pal stow tail uname ; do
+                   pal stow uname ; do
         [[ -z ${_comps[$compcom]} ]] && compdef _gnu_generic ${compcom}
     done; unset compcom
 
@@ -1132,6 +1137,7 @@ help_zle_parse_keybindings()
 
     if [[ -r $HELP_ZLE_CACHE_FILE ]]; then
         local load_cache=0
+        local f
         for f ($HELPZLE_KEYBINDING_FILES) [[ $f -nt $HELP_ZLE_CACHE_FILE ]] && load_cache=1
         [[ $load_cache -eq 0 ]] && . $HELP_ZLE_CACHE_FILE && return
     fi
@@ -1173,7 +1179,7 @@ help_zle_parse_keybindings()
     typeset -g -a help_zle_lines
     typeset -g help_zle_sln=1
 
-    local k v
+    local k v f cline
     local lastkeybind_desc contents     #last description starting with #k# that we found
     local num_lines_elapsed=0            #number of lines between last description and keybinding
     #search config files in the order they a called (and thus the order in which they overwrite keybindings)
@@ -1453,6 +1459,7 @@ if zrcgotwidget history-incremental-pattern-search-backward; then
     do
         bind2maps emacs viins vicmd -- -s $seq $wid
     done
+    builtin unset -v seq wid
 fi
 
 if zrcgotkeymap menuselect; then
@@ -1872,7 +1879,7 @@ fi
 # below, which gets called when the user does this: prompt -h grml
 
 function prompt_grml_help () {
-    cat <<__EOF0__
+    <<__EOF0__
   prompt grml
 
     This is the prompt as used by the grml-live system <http://grml.org>. It is
@@ -1929,7 +1936,7 @@ __EOF0__
 }
 
 function prompt_grml-chroot_help () {
-    cat <<__EOF0__
+    <<__EOF0__
   prompt grml-chroot
 
     This is a variation of the grml prompt, see: prompt -h grml
@@ -1943,7 +1950,7 @@ __EOF0__
 }
 
 function prompt_grml-large_help () {
-    cat <<__EOF0__
+    <<__EOF0__
   prompt grml-large
 
     This is a variation of the grml prompt, see: prompt -h grml
@@ -2058,7 +2065,7 @@ function grml_theme_has_token () {
 }
 
 function GRML_theme_add_token_usage () {
-    cat <<__EOF__
+    <<__EOF0__
   Usage: grml_theme_add_token <name> [-f|-i] <token/function> [<pre> <post>]
 
     <name> is the name for the newly added token. If the \`-f' or \`-i' options
@@ -2099,7 +2106,7 @@ function GRML_theme_add_token_usage () {
 
     After that, you will be able to use a changed \`items' style to
     assemble your prompt.
-__EOF__
+__EOF0__
 }
 
 function grml_theme_add_token () {
@@ -2437,22 +2444,21 @@ fi
 
 # do we have GNU ls with color-support?
 if [[ "$TERM" != dumb ]]; then
-    #a1# List files with colors (\kbd{ls -F \ldots})
-    alias ls='command ls -F '${ls_options:+"${ls_options[*]}"}
+    #a1# List files with colors (\kbd{ls \ldots})
+    alias ls="command ls ${ls_options:+${ls_options[*]}}"
     #a1# List all files, with colors (\kbd{ls -la \ldots})
-    alias la='command ls -la '${ls_options:+"${ls_options[*]}"}
+    alias la="command ls -la ${ls_options:+${ls_options[*]}}"
     #a1# List files with long colored list, without dotfiles (\kbd{ls -l \ldots})
-    alias ll='command ls -l '${ls_options:+"${ls_options[*]}"}
+    alias ll="command ls -l ${ls_options:+${ls_options[*]}}"
     #a1# List files with long colored list, human readable sizes (\kbd{ls -hAl \ldots})
-    alias lh='command ls -hAl '${ls_options:+"${ls_options[*]}"}
-    #a1# List files with long colored list, append qualifier to filenames (\kbd{ls -lF \ldots})\\&\quad(\kbd{/} for directories, \kbd{@} for symlinks ...)
-    alias l='command ls -lF '${ls_options:+"${ls_options[*]}"}
+    alias lh="command ls -hAl ${ls_options:+${ls_options[*]}}"
+    #a1# List files with long colored list, append qualifier to filenames (\kbd{ls -l \ldots})\\&\quad(\kbd{/} for directories, \kbd{@} for symlinks ...)
+    alias l="command ls -l ${ls_options:+${ls_options[*]}}"
 else
-    alias ls='command ls -F'
     alias la='command ls -la'
     alias ll='command ls -l'
     alias lh='command ls -hAl'
-    alias l='command ls -lF'
+    alias l='command ls -l'
 fi
 
 alias mdstat='cat /proc/mdstat'
@@ -2471,6 +2477,7 @@ alias term2utf="echo 'Setting terminal to utf-8 mode'; print -n '\e%G'"
 [[ -n ${aliases[utf2iso]} ]] && unalias utf2iso
 utf2iso() {
     if isutfenv ; then
+        local ENV
         for ENV in $(env | command grep -i '.utf') ; do
             eval export "$(echo $ENV | sed 's/UTF-8/iso885915/ ; s/utf8/iso885915/')"
         done
@@ -2481,6 +2488,7 @@ utf2iso() {
 [[ -n ${aliases[iso2utf]} ]] && unalias iso2utf
 iso2utf() {
     if ! isutfenv ; then
+        local ENV
         for ENV in $(env | command grep -i '\.iso') ; do
             eval export "$(echo $ENV | sed 's/iso.*/UTF-8/ ; s/ISO.*/UTF-8/')"
         done
@@ -2607,12 +2615,12 @@ fi
 if [[ -L /usr/bin/cdrecord ]] || ! check_com -c cdrecord; then
     if check_com -c wodim; then
         cdrecord() {
-            cat <<EOMESS
+            <<__EOF0__
 cdrecord is not provided under its original name by Debian anymore.
 See #377109 in the BTS of Debian for more details.
 
 Please use the wodim binary instead
-EOMESS
+__EOF0__
             return 1
         }
     fi
@@ -2822,6 +2830,7 @@ if [[ -d /etc/init.d || -d /etc/service ]] ; then
         eval "$i() { __start_stop $i \"\$1\" \"\$2\" ; }"
         compdef _grmlinitd $i
     done
+    builtin unset -v i
 fi
 
 #f1# Provides useful information on globbing
@@ -2936,7 +2945,8 @@ ssl-cert-info() {
 }
 
 # make sure our environment is clean regarding colors
-for color in BLUE RED GREEN CYAN YELLOW MAGENTA WHITE ; unset $color
+for var in BLUE RED GREEN CYAN YELLOW MAGENTA WHITE ; unset $var
+builtin unset -v var
 
 # "persistent history"
 # just write important commands you always need to ~/.important_commands
@@ -3023,12 +3033,19 @@ fi
 bk() {
     emulate -L zsh
     local current_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
-    local clean keep move verbose result
+    local clean keep move verbose result all to_bk
     setopt extended_glob
-    usage() {
-        cat << EOT
+    keep=1
+    while getopts ":hacmrv" opt; do
+        case $opt in
+            a) (( all++ ));;
+            c) unset move clean && (( ++keep ));;
+            m) unset keep clean && (( ++move ));;
+            r) unset move keep && (( ++clean ));;
+            v) verbose="-v";;
+            h) <<__EOF0__
 bk [-hcmv] FILE [FILE ...]
-bk -r [-v] [FILE [FILE ...]]
+bk -r [-av] [FILE [FILE ...]]
 Backup a file or folder in place and append the timestamp
 Remove backups of a file or folder, or all backups in the current directory
 
@@ -3038,36 +3055,31 @@ Usage:
 -m    Move the file/folder, using mv(1)
 -r    Remove backups of the specified file or directory, using rm(1). If none
       is provided, remove all backups in the current directory.
+-a    Remove all (even hidden) backups.
 -v    Verbose
 
 The -c, -r and -m options are mutually exclusive. If specified at the same time,
 the last one is used.
 
 The return code is the sum of all cp/mv/rm return codes.
-EOT
-    }
-    keep=1
-    while getopts ":hcmrv" opt; do
-        case $opt in
-            c) unset move clean && (( ++keep ));;
-            m) unset keep clean && (( ++move ));;
-            r) unset move keep && (( ++clean ));;
-            v) verbose="-v";;
-            h) usage;;
-            \?) usage >&2; return 1;;
+__EOF0__
+return 0;;
+            \?) bk -h >&2; return 1;;
         esac
     done
     shift "$((OPTIND-1))"
     if (( keep > 0 )); then
-        while (( $# > 0 )); do
-            if islinux || isfreebsd; then
-                cp $verbose -a "${1%/}" "${1%/}_$current_date"
-            else
-                cp $verbose -pR "${1%/}" "${1%/}_$current_date"
-            fi
-            (( result += $? ))
-            shift
-        done
+        if islinux || isfreebsd; then
+            for to_bk in "$@"; do
+                cp $verbose -a "${to_bk%/}" "${to_bk%/}_$current_date"
+                (( result += $? ))
+            done
+        else
+            for to_bk in "$@"; do
+                cp $verbose -pR "${to_bk%/}" "${to_bk%/}_$current_date"
+                (( result += $? ))
+            done
+        fi
     elif (( move > 0 )); then
         while (( $# > 0 )); do
             mv $verbose "${1%/}" "${1%/}_$current_date"
@@ -3076,13 +3088,16 @@ EOT
         done
     elif (( clean > 0 )); then
         if (( $# > 0 )); then
-            while (( $# > 0 )); do
-                rm $verbose -rf "${1%/}"_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+            for to_bk in "$@"; do
+                rm $verbose -rf "${to_bk%/}"_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
                 (( result += $? ))
-                shift
             done
         else
-            rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+            if (( all > 0 )); then
+                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z(D)
+            else
+                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+            fi
             (( result += $? ))
         fi
     fi
@@ -3158,12 +3173,12 @@ if (( $#grep_options > 0 )); then
 fi
 
 # Translate DE<=>EN
-# 'translate' looks up fot a word in a file with language-to-language
+# 'translate' looks up a word in a file with language-to-language
 # translations (field separator should be " : "). A typical wordlist looks
-# like at follows:
-#  | english-word : german-transmission
+# like the following:
+#  | english-word : german-translation
 # It's also only possible to translate english to german but not reciprocal.
-# Use the following oneliner to turn back the sort order:
+# Use the following oneliner to reverse the sort order:
 #  $ awk -F ':' '{ print $2" : "$1" "$3 }' \
 #    /usr/local/lib/words/en-de.ISO-8859-1.vok > ~/.translate/de-en.ISO-8859-1.vok
 #f5# Translates a word
@@ -3189,7 +3204,7 @@ trans() {
 simple-extract() {
     emulate -L zsh
     setopt extended_glob noclobber
-    local DELETE_ORIGINAL DECOMP_CMD USES_STDIN USES_STDOUT GZTARGET WGET_CMD
+    local ARCHIVE DELETE_ORIGINAL DECOMP_CMD USES_STDIN USES_STDOUT GZTARGET WGET_CMD
     local RC=0
     zparseopts -D -E "d=DELETE_ORIGINAL"
     for ARCHIVE in "${@}"; do
@@ -3288,9 +3303,9 @@ simple-extract() {
 
         elif [[ "$ARCHIVE" == (#s)(https|http|ftp)://* ]] ; then
             if check_com curl; then
-                WGET_CMD="curl -L -k -s -o -"
+                WGET_CMD="curl -L -s -o -"
             elif check_com wget; then
-                WGET_CMD="wget -q -O - --no-check-certificate"
+                WGET_CMD="wget -q -O -"
             else
                 print "ERROR: neither wget nor curl is installed" >&2
                 RC=$((RC+4))
@@ -3470,6 +3485,7 @@ if check_com -c hg ; then
     #f5# GNU like diff for mercurial
     hgdi() {
         emulate -L zsh
+        local i
         for i in $(hg status -marn "$@") ; diff -ubwd <(hg cat "$i") "$i"
     }
 
