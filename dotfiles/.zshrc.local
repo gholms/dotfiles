@@ -1,6 +1,7 @@
 export PATH="${PATH}:/sbin:/usr/sbin"
 export EDITOR="vim"
 export PAGER="less"
+export SYSTEMD_PAGER=""
 export PYTHONSTARTUP=~/.pythonrc
 
 # Report cpu/system/user time of commands that run longer than 15 seconds
