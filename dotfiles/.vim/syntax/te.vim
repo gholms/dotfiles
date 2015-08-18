@@ -24,7 +24,7 @@ endif
 syn sync        minlines=100
 
 " define the te syntax
-syn keyword     teStatement     allow dontaudit auditallow neverallow type attribute type_change user role type_transition dominance alias types roles typealias bool typeattribute
+syn keyword     teStatement     allow dontaudit auditallow neverallow type attribute type_change user role type_transition dominance alias types roles typealias bool typeattribute permissive
 syn keyword     teTodo          TODO XXX FIXME contained
 syn match       teDescription   /\<\(Authors\=\>\|X[-_A-Za-z]*-Packages:\|DESC\>\|Depends:\).*/ contained
 syn match       teComment       /#.*/ contains=teTodo,teDescription
