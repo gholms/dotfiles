@@ -274,6 +274,83 @@ function zrcautoload() {
     return 0
 }
 
+# The following is the ‘add-zsh-hook’ function from zsh upstream. It is
+# included here to make the setup work with older versions of zsh (prior to
+# 4.3.7) in which this function had a bug that triggers annoying errors during
+# shell startup. This is exactly upstreams code from f0068edb4888a4d8fe94def,
+# with just a few adjustments in coding style to make the function look more
+# compact. This definition can be removed as soon as we raise the minimum
+# version requirement to 4.3.7 or newer.
+function add-zsh-hook() {
+    # Add to HOOK the given FUNCTION.
+    # HOOK is one of chpwd, precmd, preexec, periodic, zshaddhistory,
+    # zshexit, zsh_directory_name (the _functions subscript is not required).
+    #
+    # With -d, remove the function from the hook instead; delete the hook
+    # variable if it is empty.
+    #
+    # -D behaves like -d, but pattern characters are active in the function
+    # name, so any matching function will be deleted from the hook.
+    #
+    # Without -d, the FUNCTION is marked for autoload; -U is passed down to
+    # autoload if that is given, as are -z and -k. (This is harmless if the
+    # function is actually defined inline.)
+    emulate -L zsh
+    local -a hooktypes
+    hooktypes=(
+        chpwd precmd preexec periodic zshaddhistory zshexit
+        zsh_directory_name
+    )
+    local usage="Usage: $0 hook function\nValid hooks are:\n  $hooktypes"
+    local opt
+    local -a autoopts
+    integer del list help
+    while getopts "dDhLUzk" opt; do
+        case $opt in
+        (d) del=1 ;;
+        (D) del=2 ;;
+        (h) help=1 ;;
+        (L) list=1 ;;
+        ([Uzk]) autoopts+=(-$opt) ;;
+        (*) return 1 ;;
+        esac
+    done
+    shift $(( OPTIND - 1 ))
+    if (( list )); then
+        typeset -mp "(${1:-${(@j:|:)hooktypes}})_functions"
+        return $?
+    elif (( help || $# != 2 || ${hooktypes[(I)$1]} == 0 )); then
+        print -u$(( 2 - help )) $usage
+        return $(( 1 - help ))
+    fi
+    local hook="${1}_functions"
+    local fn="$2"
+    if (( del )); then
+        # delete, if hook is set
+        if (( ${(P)+hook} )); then
+            if (( del == 2 )); then
+                set -A $hook ${(P)hook:#${~fn}}
+            else
+                set -A $hook ${(P)hook:#$fn}
+            fi
+            # unset if no remaining entries --- this can give better
+            # performance in some cases
+            if (( ! ${(P)#hook} )); then
+                unset $hook
+            fi
+        fi
+    else
+        if (( ${(P)+hook} )); then
+            if (( ${${(P)hook}[(I)$fn]} == 0 )); then
+                set -A $hook ${(P)hook} $fn
+            fi
+        else
+            set -A $hook $fn
+        fi
+        autoload $autoopts -- $fn
+    fi
+}
+
 # Load is-at-least() for more precise version checks Note that this test will
 # *always* fail, if the is-at-least function could not be marked for
 # autoloading.
@@ -310,9 +387,6 @@ setopt extended_glob
 
 # display PID when suspending processes as well
 setopt longlistjobs
-
-# try to avoid the 'zsh: no matches found...'
-setopt nonomatch
 
 # report the status of backgrounds jobs immediately
 setopt notify
@@ -451,30 +525,6 @@ salias() {
     return 0
 }
 
-# a "print -l ${(u)foo}"-workaround for pre-4.2.0 shells
-# usage: uprint foo
-#   Where foo is the *name* of the parameter you want printed.
-#   Note that foo is no typo; $foo would be wrong here!
-if ! is42 ; then
-    uprint () {
-        emulate -L zsh
-        local -a u
-        local w
-        local parameter=$1
-
-        if [[ -z ${parameter} ]] ; then
-            printf 'usage: uprint <parameter>\n'
-            return 1
-        fi
-
-        for w in ${(P)parameter} ; do
-            [[ -z ${(M)u:#$w} ]] && u=( $u $w )
-        done
-
-        builtin print -l $u
-    }
-fi
-
 # Check if we can read given files and source those we can.
 xsource() {
     if (( ${#argv} < 1 )) ; then
@@ -546,14 +596,6 @@ export PAGER=${PAGER:-less}
 
 #v#
 export MAIL=${MAIL:-/var/mail/$USER}
-
-# if we don't set $SHELL then aterm, rxvt,.. will use /bin/sh or /bin/bash :-/
-if [[ -z "$SHELL" ]] ; then
-  SHELL="$(which zsh)"
-  if [[ -x "$SHELL" ]] ; then
-    export SHELL
-  fi
-fi
 
 # color setup for ls:
 check_com -c dircolors && eval $(dircolors -b)
@@ -769,7 +811,7 @@ grmlcomp() {
 
     # host completion
     if is42 ; then
-        [[ -r ~/.ssh/config ]] && _ssh_config_hosts=(${${${(@M)${(f)"$(<$HOME/.ssh/config)"}:#Host *}#Host }:#*[*?]*}) || _ssh_config_hosts=()
+        [[ -r ~/.ssh/config ]] && _ssh_config_hosts=(${${(s: :)${(ps:\t:)${${(@M)${(f)"$(<$HOME/.ssh/config)"}:#Host *}#Host }}}:#*[*?]*}) || _ssh_config_hosts=()
         [[ -r ~/.ssh/known_hosts ]] && _ssh_hosts=(${${${${(f)"$(<$HOME/.ssh/known_hosts)"}:#[\|]*}%%\ *}%%,*}) || _ssh_hosts=()
         [[ -r /etc/hosts ]] && : ${(A)_etc_hosts:=${(s: :)${(ps:\t:)${${(f)~~"$(</etc/hosts)"}%%\#*}##[:blank:]#[^[:blank:]]#}}} || _etc_hosts=()
     else
@@ -912,7 +954,7 @@ function Accept-Line-HandleContext() {
 
 function accept-line() {
     setopt localoptions noksharrays
-    local -ax cmdline
+    local -a cmdline
     local -x alcontext
     local buf com fname format msg default_action
 
@@ -1550,22 +1592,51 @@ isgrmlcd && SAVEHIST=1000 || SAVEHIST=10000 # useful for setopt append_history
 DIRSTACKSIZE=${DIRSTACKSIZE:-20}
 DIRSTACKFILE=${DIRSTACKFILE:-${ZDOTDIR:-${HOME}}/.zdirs}
 
-if [[ -f ${DIRSTACKFILE} ]] && [[ ${#dirstack[*]} -eq 0 ]] ; then
-    dirstack=( ${(f)"$(< $DIRSTACKFILE)"} )
-    # "cd -" won't work after login by just setting $OLDPWD, so
-    [[ -d $dirstack[1] ]] && cd $dirstack[1] && cd $OLDPWD
-fi
+typeset -gaU GRML_PERSISTENT_DIRSTACK
+function grml_dirstack_filter() {
+    local -a exclude
+    local filter entry
+    if zstyle -s ':grml:chpwd:dirstack' filter filter; then
+        $filter $1 && return 0
+    fi
+    if zstyle -a ':grml:chpwd:dirstack' exclude exclude; then
+        for entry in "${exclude[@]}"; do
+            [[ $1 == ${~entry} ]] && return 0
+        done
+    fi
+    return 1
+}
 
 chpwd() {
-    if (( $DIRSTACKSIZE <= 0 )) || [[ -z $DIRSTACKFILE ]]; then return; fi
-    local -ax my_stack
-    my_stack=( ${PWD} ${dirstack} )
-    if is42 ; then
-        builtin print -l ${(u)my_stack} >! ${DIRSTACKFILE}
-    else
-        uprint my_stack >! ${DIRSTACKFILE}
-    fi
+    (( $DIRSTACKSIZE <= 0 )) && return
+    [[ -z $DIRSTACKFILE ]] && return
+    grml_dirstack_filter $PWD && return
+    GRML_PERSISTENT_DIRSTACK=(
+        $PWD "${(@)GRML_PERSISTENT_DIRSTACK[1,$DIRSTACKSIZE]}"
+    )
+    builtin print -l ${GRML_PERSISTENT_DIRSTACK} >! ${DIRSTACKFILE}
 }
+
+if [[ -f ${DIRSTACKFILE} ]]; then
+    # Enabling NULL_GLOB via (N) weeds out any non-existing
+    # directories from the saved dir-stack file.
+    dirstack=( ${(f)"$(< $DIRSTACKFILE)"}(N) )
+    # "cd -" won't work after login by just setting $OLDPWD, so
+    [[ -d $dirstack[1] ]] && cd -q $dirstack[1] && cd -q $OLDPWD
+fi
+
+if zstyle -T ':grml:chpwd:dirstack' filter-on-load; then
+    for i in "${dirstack[@]}"; do
+        if ! grml_dirstack_filter "$i"; then
+            GRML_PERSISTENT_DIRSTACK=(
+                "${GRML_PERSISTENT_DIRSTACK[@]}"
+                $i
+            )
+        fi
+    done
+else
+    GRML_PERSISTENT_DIRSTACK=( "${dirstack[@]}" )
+fi
 
 # directory based profiles
 
@@ -1969,7 +2040,10 @@ __EOF0__
 function grml_prompt_setup () {
     emulate -L zsh
     autoload -Uz vcs_info
-    autoload -Uz add-zsh-hook
+    # The following autoload is disabled for now, since this setup includes a
+    # static version of the ‘add-zsh-hook’ function above. It needs to be
+    # reenabled as soon as that static definition is removed again.
+    #autoload -Uz add-zsh-hook
     add-zsh-hook precmd prompt_$1_precmd
 }
 
@@ -2401,7 +2475,10 @@ function grml_control_xterm_title () {
     esac
 }
 
-zrcautoload add-zsh-hook || add-zsh-hook () { :; }
+# The following autoload is disabled for now, since this setup includes a
+# static version of the ‘add-zsh-hook’ function above. It needs to be
+# reenabled as soon as that static definition is removed again.
+#zrcautoload add-zsh-hook || add-zsh-hook () { :; }
 if [[ $NOPRECMD -eq 0 ]]; then
     add-zsh-hook precmd grml_reset_screen_title
     add-zsh-hook precmd grml_vcs_to_screen_title
@@ -2682,16 +2759,98 @@ is4 && nt() {
 freload() { while (( $# )); do; unfunction $1; autoload -U $1; shift; done }
 compdef _functions freload
 
-#f1# List symlinks in detail (more detailed version of 'readlink -f' and 'whence -s')
+#
+# Usage:
+#
+#      e.g.:   a -> b -> c -> d  ....
+#
+#      sll a
+#
+#
+#      if parameter is given with leading '=', lookup $PATH for parameter and resolve that
+#
+#      sll =java
+#
+#      Note: limit for recursive symlinks on linux:
+#            http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/fs/namei.c?id=refs/heads/master#l808
+#            This limits recursive symlink follows to 8,
+#            while limiting consecutive symlinks to 40.
+#
+#      When resolving and displaying information about symlinks, no check is made
+#      that the displayed information does make any sense on your OS.
+#      We leave that decission to the user.
+#
+#      The zstat module is used to detect symlink loops. zstat is available since zsh4.
+#      With an older zsh you will need to abort with <C-c> in that case.
+#      When a symlink loop is detected, a warning ist printed and further processing is stopped.
+#
+#      Module zstat is loaded by default in grml zshrc, no extra action needed for that.
+#
+#      Known bugs:
+#      If you happen to come accross a symlink that points to a destination on an other partition
+#      with the same inode number, that will be marked as symlink loop though it is not.
+#      Two hints for this situation:
+#      I)  Play lottery the same day, as you seem to be rather lucky right now.
+#      II) Send patches.
+#
+#      return status:
+#      0 upon success
+#      1 file/dir not accesible
+#      2 symlink loop detected
+#
+#f1# List symlinks in detail (more detailed version of 'readlink -f', 'whence -s' and 'namei -l')
 sll() {
-    [[ -z "$1" ]] && printf 'Usage: %s <file(s)>\n' "$0" && return 1
-    local file
-    for file in "$@" ; do
+    if [[ -z ${1} ]] ; then
+        printf 'Usage: %s <symlink(s)>\n' "${0}"
+        return 1
+    fi
+
+    local file jumpd curdir
+    local -i RTN LINODE i
+    local -a SEENINODES
+    curdir="${PWD}"
+    RTN=0
+
+    for file in "${@}" ; do
+        SEENINODES=()
+        ls -l "${file:a}"   || RTN=1
+
         while [[ -h "$file" ]] ; do
-            ls -l $file
+            if is4 ; then
+                LINODE=$(zstat -L +inode "${file}")
+                for i in ${SEENINODES} ; do
+                    if (( ${i} == ${LINODE} )) ; then
+                        builtin cd "${curdir}"
+                        print "link loop detected, aborting!"
+                        return 2
+                    fi
+                done
+                SEENINODES+=${LINODE}
+            fi
+            jumpd="${file:h}"
+            file="${file:t}"
+
+            if [[ -d ${jumpd} ]] ; then
+                builtin cd "${jumpd}"  || RTN=1
+            fi
             file=$(readlink "$file")
+
+            jumpd="${file:h}"
+            file="${file:t}"
+
+            if [[ -d ${jumpd} ]] ; then
+                builtin cd "${jumpd}"  || RTN=1
+            fi
+
+            ls -l "${PWD}/${file}"     || RTN=1
         done
+        shift 1
+        if (( ${#} >= 1 )) ; then
+            print ""
+        fi
+        builtin cd "${curdir}"
     done
+    return ${RTN}
 }
 
 # TODO: Is it supported to use pager settings like this?
@@ -2773,7 +2932,7 @@ fi
 
 # zsh profiling
 profile() {
-    ZSH_PROFILE_RC=1 $SHELL "$@"
+    ZSH_PROFILE_RC=1 zsh "$@"
 }
 
 #f1# Edit an alias via zle
@@ -2789,12 +2948,12 @@ edfunc() {
 compdef _functions edfunc
 
 # use it e.g. via 'Restart apache2'
-#m# f6 Start() \kbd{/etc/init.d/\em{process}}\quad\kbd{start}
-#m# f6 Restart() \kbd{/etc/init.d/\em{process}}\quad\kbd{restart}
-#m# f6 Stop() \kbd{/etc/init.d/\em{process}}\quad\kbd{stop}
-#m# f6 Reload() \kbd{/etc/init.d/\em{process}}\quad\kbd{reload}
-#m# f6 Force-Reload() \kbd{/etc/init.d/\em{process}}\quad\kbd{force-reload}
-#m# f6 Status() \kbd{/etc/init.d/\em{process}}\quad\kbd{status}
+#m# f6 Start() \kbd{service \em{process}}\quad\kbd{start}
+#m# f6 Restart() \kbd{service \em{process}}\quad\kbd{restart}
+#m# f6 Stop() \kbd{service \em{process}}\quad\kbd{stop}
+#m# f6 Reload() \kbd{service \em{process}}\quad\kbd{reload}
+#m# f6 Force-Reload() \kbd{service \em{process}}\quad\kbd{force-reload}
+#m# f6 Status() \kbd{service \em{process}}\quad\kbd{status}
 if [[ -d /etc/init.d || -d /etc/service ]] ; then
     __start_stop() {
         local action_="${1:l}"  # e.g Start/Stop/Restart
@@ -2815,8 +2974,12 @@ if [[ -d /etc/init.d || -d /etc/service ]] ; then
                 *) $SUDO "/etc/init.d/$service_" "${action_}" "$param_" ;;
             esac
         else
-            # sysvinit
-            $SUDO "/etc/init.d/$service_" "${action_}" "$param_"
+            # sysv/sysvinit-utils, upstart
+            if check_com -c service ; then
+              $SUDO service "$service_" "${action_}" "$param_"
+            else
+              $SUDO "/etc/init.d/$service_" "${action_}" "$param_"
+            fi
         fi
     }
 
@@ -3137,10 +3300,8 @@ mkcd() {
 
 #f5# Create temporary directory and \kbd{cd} to it
 cdt() {
-    local t
-    t=$(mktemp -d)
-    echo "$t"
-    builtin cd "$t"
+    builtin cd "$(mktemp -d)"
+    builtin pwd
 }
 
 #f5# List files which have been accessed within the last {\it n} days, {\it n} defaults to 1
@@ -3306,8 +3467,10 @@ simple-extract() {
                 WGET_CMD="curl -L -s -o -"
             elif check_com wget; then
                 WGET_CMD="wget -q -O -"
+            elif check_com fetch; then
+                WGET_CMD="fetch -q -o -"
             else
-                print "ERROR: neither wget nor curl is installed" >&2
+                print "ERROR: neither wget, curl nor fetch is installed" >&2
                 RC=$((RC+4))
                 continue
             fi
