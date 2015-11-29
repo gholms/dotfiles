@@ -109,6 +109,13 @@ elif [[ -f /etc/SuSE-release ]]; then
     else
         OS_TITLE="<SUSE>"
     fi
+elif grep -q 'NAME="Ubuntu"' /etc/os-release 2>/dev/null; then
+    if grep -q 'VERSION_ID="14.04"' /etc/os-release 2>/dev/null; then
+        OS_COLOR='green'
+        OS_TITLE="<Ubuntu 14.04>"
+    else
+        OS_TITLE="<Ubuntu>"
+    fi
 elif [[ -f /etc/debian_version ]]; then
     arch=`uname -m`
     version=`cat /etc/debian_version`
