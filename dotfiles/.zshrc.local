@@ -51,7 +51,10 @@ OS_TITLE=""
 if [[ -f /etc/fedora-release ]]; then
     arch=`uname -i`
     uname_r=`uname -r`
-    if [[ "$uname_r" == *fc24* ]]; then
+    if [[ "$uname_r" == *fc25* ]]; then
+        OS_COLOR='blue'
+        OS_TITLE="<Fedora 25>"
+    elif [[ "$uname_r" == *fc24* ]]; then
         OS_COLOR='cyan'
         OS_TITLE="<Fedora 24>"
     elif [[ "$uname_r" == *fc23* ]]; then
@@ -66,16 +69,16 @@ if [[ -f /etc/fedora-release ]]; then
     elif [[ "$uname_r" == *fc20* ]]; then
         OS_COLOR='magenta'
         OS_TITLE="<Fedora 20>"
-    elif [[ "$uname_r" == *fc19* ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<Fedora 19>"
     else
         OS_TITLE="<Fedora>"
     fi
 elif [[ -f /etc/redhat-release ]]; then
     arch=`uname -i`
     uname_r=`uname -r`
-    if [[ "$uname_r" == *el7* ]]; then
+    if [[ "$uname_r" == *el8* ]]; then
+        OS_COLOR='cyan'
+        OS_TITLE="<RHEL 8>"
+    elif [[ "$uname_r" == *el7* ]]; then
         OS_COLOR='green'
         OS_TITLE="<RHEL 7>"
     elif [[ "$uname_r" == *el6* ]]; then
@@ -138,12 +141,15 @@ elif [[ -f /etc/gentoo-release ]]; then
 elif isdarwin; then
     arch=`uname -p`
     os_major=`uname -r | cut -d. -f1`
-    if [[ "${os_major}" = 15 ]]; then
+    if [[ "${os_major}" = 16 ]]; then
+        OS_COLOR='green'
+        OS_TITLE="<MacOS 10.12>"
+    elif [[ "${os_major}" = 15 ]]; then
         OS_COLOR='yellow'
-        OS_TITLE="<Mac OS X 10.11>"
+        OS_TITLE="<OS X 10.11>"
     elif [[ "${os_major}" = 14 ]]; then
         OS_COLOR='red'
-        OS_TITLE="<Mac OS X 10.10>"
+        OS_TITLE="<OS X 10.10>"
     elif [[ "${os_major}" = 13 ]]; then
         OS_COLOR='magenta'
         OS_TITLE="<Mac OS X 10.9>"
@@ -153,9 +159,6 @@ elif isdarwin; then
     elif [[ "${os_major}" = 11 ]]; then
         OS_COLOR='cyan'
         OS_TITLE="<Mac OS X 10.7>"
-    elif [[ "${os_major}" = 10 ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<Mac OS X 10.6>"
     else
         OS_TITLE="<Mac OS X>"
     fi
