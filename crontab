@@ -6,3 +6,6 @@
 # Remove old temporary stuff
 0 0 * * * if [[ -d ~/tmp ]]; then find ~/tmp -depth -type f -ctime +28 -exec rm {} \; ; fi; # remove old files
 0 5 * * * if [[ -d ~/tmp ]]; then find ~/tmp -depth -type d -ctime +28 -exec rm -r {} \; ; fi; # remove old directories
+
+# Machine-specific stuff
+0 2 * * * if [[ -d ~/.cron.daily ]]; then for f in ~/.cron.daily/*; do [[ -x $f ]] && $f; done; fi
