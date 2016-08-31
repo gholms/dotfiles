@@ -3,6 +3,8 @@ export EDITOR="vim"
 export PAGER="less"
 export SYSTEMD_PAGER=""
 export PYTHONSTARTUP=~/.pythonrc
+export HISTSIZE=25000
+export SAVEHIST=50000
 
 # Report cpu/system/user time of commands that run longer than 15 seconds
 export REPORTTIME=15
