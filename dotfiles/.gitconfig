@@ -34,6 +34,10 @@
     insteadOf = github:
 [url "git@github.com:"]
     pushInsteadOf = github:
+[url "git://git.launchpad.net/"]
+    insteadOf = lp:
+[url "gholms@git.launchpad.net/"]
+    pushInsteadOf = lp:
 [user]
     name = Garrett Holmstrom
     email = gholms@devzero.com
