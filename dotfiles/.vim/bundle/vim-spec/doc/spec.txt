@@ -1,0 +1,156 @@
+*spec.txt*	For Vim version 7.4 or later.	Last change: 2016 July 16
+
+by Filip Szymański
+
+==============================================================================
+CONTENTS                                                       *spec-contents*
+
+  1. Introduction                                          |spec-introduction|
+  2. Configuration                                        |spec-configuration|
+  3. Commands                                                  |spec-commands|
+  4. Mappings                                                  |spec-mappings|
+  5. Navigation                                              |spec-navigation|
+  6. About                                                        |spec-about|
+  7. References                                              |spec-references|
+
+==============================================================================
+Introduction                                               *spec-introduction*
+
+*vim-spec* is a filetype plugin for creating/editing RPM spec files.
+
+==============================================================================
+Configuration                                             *spec-configuration*
+
+                                                           *'g:spec_fullname'*
+Type: string
+Default: rpmdev-packager output or $USERNAME env variable
+With this option you can set the packagers name. The name is used in
+the changelog entry.
+
+                                                      *'g:spec_email_address'*
+Type: string
+Default: rpmdev-packager output or |hostname()|
+With this option you can set the packagers email address. The email address
+is used in the changelog entry.
+
+                                                  *'g:spec_changelog_use_utc'*
+Type: boolean
+Default: 1
+When this option is set to 1, the Coordinated Universal Time (UTC) is used
+in the changelog entry (it uses local time otherwise).
+
+                                                   *'g:spec_changelog_format'*
+Type: string
+Default: normal
+With this option you can set the changelog format [1]. You can choose between
+normal, nodash or multiline.
+
+Examples:
+>
+    let g:spec_changelog_format = 'normal'
+
+    > * Fri Jan 01 2016 John Smith <jsmith@redhat.com> - 1.0-1
+    > - Initial release
+<
+    or
+>
+    let g:spec_changelog_format = 'nodash'
+
+    > * Fri Jan 01 2016 John Smith <jsmith@redhat.com> 1.0-1
+    > - Initial release
+<
+    or
+>
+    let g:spec_changelog_format = 'multiline'
+
+    > * Fri Jan 01 2016 John Smith <jsmith@redhat.com>
+    > - 1.0-1
+    > - Initial release
+<
+                                             *'g:spec_changelog_item_prepend'*
+Type: boolean
+Default: 0
+When this option is set to 1, the new changelog item is inserted before
+the existing ones.
+
+                                            *'g:spec_add_changelog_entry_map'*
+Type: string
+Default: <LocalLeader>c
+With this option you can set the key mapping for |<Plug>SpecAddchangelogentry|.
+
+                                           *'g:spec_increase_release_tag_map'*
+Type: string
+Default: <LocalLeader>r
+With this option you can set the key mapping for |<Plug>SpecIncreasereleasetag|.
+
+                                                     *'g:spec_rpm_build_args'*
+Type: string
+Default: -ba
+With this option you can set the rpmbuild [2] arguments.
+
+                                                    *'g:spec_rpm_build_async'*
+Type: boolean
+Default: 1
+When this option is set to 1, the RPM package is build asynchronously.
+
+                                              *'g:spec_build_rpm_package_map'*
+Type: string
+Default: <LocalLeader>b
+With this option you can set the key mapping for |<Plug>SpecBuildrpmpackage|.
+
+                                                            *'g:spec_folding'*
+Type: boolean
+Default: 0
+When this option is set to 1, the folding is enabled.
+
+==============================================================================
+Commands                                                       *spec-commands*
+
+                                                                 *':Rpmbuild'*
+:Rpmbuild [argument...]
+Build an RPM package.
+
+Note: This command requires at least one argument [2].
+
+Example:
+>
+    :Rpmbuild -bi --short-circuit
+<
+==============================================================================
+Mappings                                                       *spec-mappings*
+
+    Default Mapping | Description
+    ----------------|---------------------------------------------------
+    <LocalLeader>c  | Add a new changelog entry (or item).
+    <LocalLeader>r  | Increase the release tag by 1.
+    <LocalLeader>b  | Build an RPM package.
+
+==============================================================================
+Navigation                                                   *spec-navigation*
+
+You can use the matchit [3] plugin for easy navigation between the sections
+and triggers in a spec file. Add this to your |.vimrc|:
+>
+    packadd! matchit
+<
+and you are good to go.
+
+==============================================================================
+About                                                             *spec-about*
+
+The core maintainer:
+    Filip Szymański <fszymanski at, fedoraproject.org>
+
+Find the latest version of this plugin at:
+    https://github.com/fszymanski/vim-spec
+
+==============================================================================
+References                                                   *spec-references*
+
+[1] https://fedoraproject.org/wiki/Packaging:Guidelines#Changelogs
+[2] http://www.rpm.org/max-rpm-snapshot/rpmbuild.8.html
+[3] http://www.vim.org/scripts/script.php?script_id=39
+
+==============================================================================
+
+ vim: tw=78 ts=8 ft=help norl

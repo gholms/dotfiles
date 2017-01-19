@@ -45,6 +45,10 @@ colorscheme solarized
 
 ""colorscheme peachpuff
 
+" rpm spec file stuff
+let spec_fullname='Garrett Holmstrom'
+let spec_email_address='gholms@fedoraproject.org'
+
 " Highlight VCS conflict markers
 match ErrorMsg '^\(<\|=\|>\)\{7\}\([^=].\+\)\?$'
 
