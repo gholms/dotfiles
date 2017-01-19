@@ -48,171 +48,23 @@ zstyle ':vcs_info:bzr:*' use-simple true
 
 # Platform-specifics
 OS_COLOR='default'
-OS_TITLE=""
+OS_COLOR_TABLE=(red yellow green cyan blue magenta)
 
-if [[ -f /etc/fedora-release ]]; then
-    arch=`uname -i`
-    uname_r=`uname -r`
-    if [[ "$uname_r" == *fc25* ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<Fedora 25>"
-    elif [[ "$uname_r" == *fc24* ]]; then
-        OS_COLOR='cyan'
-        OS_TITLE="<Fedora 24>"
-    elif [[ "$uname_r" == *fc23* ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<Fedora 23>"
-    elif [[ "$uname_r" == *fc22* ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<Fedora 22>"
-    elif [[ "$uname_r" == *fc21* ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<Fedora 21>"
-    elif [[ "$uname_r" == *fc20* ]]; then
-        OS_COLOR='magenta'
-        OS_TITLE="<Fedora 20>"
-    else
-        OS_TITLE="<Fedora>"
-    fi
-elif [[ -f /etc/redhat-release ]]; then
-    arch=`uname -i`
-    uname_r=`uname -r`
-    if [[ "$uname_r" == *el8* ]]; then
-        OS_COLOR='cyan'
-        OS_TITLE="<RHEL 8>"
-    elif [[ "$uname_r" == *el7* ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<RHEL 7>"
-    elif [[ "$uname_r" == *el6* ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<RHEL 6>"
-    elif [[ "$uname_r" == *el5* ]]; then
-        OS_COLOR='magenta'
-        OS_TITLE="<RHEL 5>"
-    elif [[ "$uname_r" == *el4* ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<RHEL 4>"
-    else
-        OS_TITLE="<RHEL>"
-    fi
-elif [[ -f /etc/SuSE-release ]]; then
-    arch=`uname -i`
-    version=`sed -n -e '/VERSION/s/.*=[[:blank:]]*//p' /etc/SuSE-release`
-    if grep -qi opensuse /etc/SuSE-release; then
-        if [[ "$version" == 11.4 ]]; then
-            OS_COLOR='cyan'
-            OS_TITLE="<openSUSE 11.4>"
-        elif [[ "$version" == 11.3 ]]; then
-            OS_COLOR='green'
-            OS_TITLE="<openSUSE 11.3>"
-        elif [[ "$version" == 11.2 ]]; then
-            OS_COLOR='yellow'
-            OS_TITLE="<openSUSE 11.2>"
-        else
-            OS_TITLE="<openSUSE>"
-        fi
-    else
-        OS_TITLE="<SUSE>"
-    fi
-elif grep -q 'NAME="Ubuntu"' /etc/os-release 2>/dev/null; then
-    if grep -q 'VERSION_ID="14.04"' /etc/os-release 2>/dev/null; then
-        OS_COLOR='green'
-        OS_TITLE="<Ubuntu 14.04>"
-    else
-        OS_TITLE="<Ubuntu>"
-    fi
-elif [[ -f /etc/debian_version ]]; then
-    arch=`uname -m`
-    version=`cat /etc/debian_version`
-    if [[ "$version" == 7.0* ]]; then
-        OS_COLOR='cyan'
-        OS_TITLE="<Debian 7.0>"
-    elif [[ "$version" == 6.0* ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<Debian 6.0>"
-    elif [[ "$version" == 5.0* ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<Debian 5.0>"
-    else
-        OS_TITLE="<Debian>"
+if [[ -f /etc/os-release ]]; then
+    OS_NAME=$(. /etc/os-release; echo "$ID")
+
+    if [[ "$OS_NAME" = "fedora" ]]; then
+        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID")
+        OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
+    elif [[ "$OS_NAME" = "rhel" ]] || [[ "$OS_NAME" = "centos" ]]; then
+        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID" | cut -d. -f1)
+        OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
     fi
 elif [[ -f /etc/gentoo-release ]]; then
-    arch=`uname -i`
-    OS_COLOR='green'
-    OS_TITLE="<Gentoo>"
+    OS_COLOR=green
 elif isdarwin; then
-    arch=`uname -p`
-    os_major=`uname -r | cut -d. -f1`
-    if [[ "${os_major}" = 16 ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<MacOS 10.12>"
-    elif [[ "${os_major}" = 15 ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<OS X 10.11>"
-    elif [[ "${os_major}" = 14 ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<OS X 10.10>"
-    elif [[ "${os_major}" = 13 ]]; then
-        OS_COLOR='magenta'
-        OS_TITLE="<Mac OS X 10.9>"
-    elif [[ "${os_major}" = 12 ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<Mac OS X 10.8>"
-    elif [[ "${os_major}" = 11 ]]; then
-        OS_COLOR='cyan'
-        OS_TITLE="<Mac OS X 10.7>"
-    else
-        OS_TITLE="<Mac OS X>"
-    fi
-elif isfreebsd; then
-    arch=`uname -p`
-    os_ver=`uname -r | cut -d- -f1`
-    if [[ "${os_ver}" = 8.1 ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<FreeBSD 8.1>"
-    elif [[ "${os_ver}" = 8.0 ]]; then
-        OS_COLOR='magenta'
-        OS_TITLE="<FreeBSD 8.0>"
-    elif [[ "${os_ver}" = 7.1 ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<FreeBSD 7.1>"
-    elif [[ "${os_ver}" = 7.0 ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<FreeBSD 7.0>"
-    else
-        OS_TITLE="<FreeBSD>"
-    fi
-elif isopenbsd; then
-    arch=`uname -m`
-    os_ver=`uname -r`
-    if [[ "${os_ver}" = 5.5 ]]; then
-        OS_COLOR='cyan'
-        OS_TITLE="<OpenBSD 5.5>"
-    elif [[ "${os_ver}" = 5.4 ]]; then
-        OS_COLOR='green'
-        OS_TITLE="<OpenBSD 5.4>"
-    elif [[ "${os_ver}" = 5.3 ]]; then
-        OS_COLOR='yellow'
-        OS_TITLE="<OpenBSD 5.3>"
-    elif [[ "${os_ver}" = 5.2 ]]; then
-        OS_COLOR='red'
-        OS_TITLE="<OpenBSD 5.2>"
-    elif [[ "${os_ver}" = 5.1 ]]; then
-        OS_COLOR='magenta'
-        OS_TITLE="<OpenBSD 5.1>"
-    elif [[ "${os_ver}" = 5.0 ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<OpenBSD 5.0>"
-    else
-        OS_TITLE="<OpenBSD>"
-    fi
-elif [[ $OSTYPE == osf* ]]; then
-    if [[ `uname -r` = 'V5.1' ]]; then
-        OS_COLOR='blue'
-        OS_TITLE="<Tru64 5.1>"
-    else
-        OS_TITLE="<Tru64>"
-    fi
+    OS_VERSION=$(uname -r | cut -d. -f1)
+    OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
 fi
 
 grml_theme_add_token rc-no-space '%(?..%F{yellow}(%?%)%f )'
@@ -235,3 +87,8 @@ zstyle :prompt:grml:left:items:host pre "%F{$OS_COLOR}"
 zstyle :prompt:grml:left:items:host post '%f'
 zstyle :prompt:grml:left:items:path pre '%F{blue}'
 zstyle :prompt:grml:left:items:path post '%f'
+
+unset OS_COLOR
+unset OS_COLOR_TABLE
+unset OS_NAME
+unset OS_VERSION
