@@ -43,10 +43,7 @@ zstyle ':vcs_info:bzr:*' use-simple true
 #
 ##################### prompt #####################
 
-# There's some old cruft in here, so we'll either get rid of it eventually
-# or go back to using it.  We'll see.
-
-# Platform-specifics
+# Choose a color for the hostname based on the OS version
 OS_COLOR='default'
 OS_COLOR_TABLE=(red yellow green cyan blue magenta)
 
