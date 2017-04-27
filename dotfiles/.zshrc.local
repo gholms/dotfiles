@@ -23,7 +23,6 @@ setopt SHARE_HISTORY
 umask 022
 
 # Aliases
-test -x /usr/bin/colordiff && alias diff=/usr/bin/colordiff
 gpg2 --help >/dev/null 2>/dev/null && alias gpg=gpg2
 
 # Keybindings:  viins mode + Home/End keys
