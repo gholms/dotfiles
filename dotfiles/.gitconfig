@@ -26,7 +26,7 @@
     autosquash = 1
 [rerere]
     enabled = 1
-[url "git://pkgs.fedoraproject.org/"]
+[url "https://src.fedoraproject.org/"]
     insteadOf = fedora:
 [url "pkgs.fedoraproject.org:"]
     pushInsteadOf = fedora:
