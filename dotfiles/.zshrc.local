@@ -55,6 +55,10 @@ if [[ -f /etc/os-release ]]; then
     elif [[ "$OS_NAME" = "rhel" ]] || [[ "$OS_NAME" = "centos" ]]; then
         OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID" | cut -d. -f1)
         OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
+    elif [[ "$OS_NAME" = "ubuntu" ]]; then
+        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID")
+        OS_COLOR=$OS_COLOR_TABLE[$(($(echo $OS_VERSION | cut -d. -f1) % 3 * 2 +
+                                    $(echo $OS_VERSION | cut -d. -f2) / 10 + 1))]
     fi
 elif [[ -f /etc/gentoo-release ]]; then
     OS_COLOR=green
