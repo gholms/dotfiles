@@ -30,7 +30,7 @@
     insteadOf = fedora:
 [url "pkgs.fedoraproject.org:"]
     pushInsteadOf = fedora:
-[url "git://github.com/"]
+[url "https://github.com/"]
     insteadOf = github:
 [url "git@github.com:"]
     pushInsteadOf = github:
