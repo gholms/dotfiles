@@ -1219,7 +1219,7 @@ function help_zle_parse_keybindings () {
     help_zle_keybindings['<Alt><arg>']="repeat next cmd/char <arg> times (<Alt>-<Alt>1<Alt>0a -> -10 times 'a')"
     help_zle_keybindings['<Alt>u']="make next word Uppercase"
     help_zle_keybindings['<Alt>l']="make next word lowercase"
-    help_zle_keybindings['<Ctrl>xd']="preview expansion under cursor"
+    help_zle_keybindings['<Ctrl>xG']="preview expansion under cursor"
     help_zle_keybindings['<Alt>q']="push current CL into background, freeing it. Restore on next CL"
     help_zle_keybindings['<Alt>.']="insert (and interate through) last word from prev CLs"
     help_zle_keybindings['<Alt>,']="complete word from newer history (consecutive hits)"
@@ -3268,7 +3268,7 @@ fi
 #f5# Backup \kbd{file_or_folder {\rm to} file_or_folder\_timestamp}
 function bk () {
     emulate -L zsh
-    local current_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
+    local current_date=$(date -u "+%Y%m%dT%H%M%SZ")
     local clean keep move verbose result all to_bk
     setopt extended_glob
     keep=1
@@ -3325,14 +3325,14 @@ return 0;;
     elif (( clean > 0 )); then
         if (( $# > 0 )); then
             for to_bk in "$@"; do
-                rm $verbose -rf "${to_bk%/}"_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+                rm $verbose -rf "${to_bk%/}"_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z
                 (( result += $? ))
             done
         else
             if (( all > 0 )); then
-                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z(D)
+                rm $verbose -rf *_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z(D)
             else
-                rm $verbose -rf *_[0-9](#c4,)-(0[0-9]|1[0-2])-([0-2][0-9]|3[0-1])T([0-1][0-9]|2[0-3])(:[0-5][0-9])(#c2)Z
+                rm $verbose -rf *_[0-9](#c8)T([0-1][0-9]|2[0-3])([0-5][0-9])(#c2)Z
             fi
             (( result += $? ))
         fi
