@@ -18,6 +18,8 @@
     untracked = cyan
 [diff]
     renames = copies
+[fetch]
+    prune = true
 [merge]
     defaultToUpstream = true
 [push]
