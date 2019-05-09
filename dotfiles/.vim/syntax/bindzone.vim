@@ -20,7 +20,7 @@ endif
 syn case match
 
 " Directives
-syn region      zoneRRecord     start=/^/ end=/$/ contains=zoneOwnerName,zoneSpecial,zoneTTL,zoneClass,zoneRRType,zoneComment,zoneUnknown
+syn region      zoneRRecord     start=/^/ end=/$/ contains=zoneOwnerName,zoneSpecial,zoneTTL,zoneClass,zoneRRType,zoneRRHashType,zoneComment,zoneUnknown
 
 syn match       zoneDirective   /^\$ORIGIN\s\+/   nextgroup=zoneOrigin,zoneUnknown
 syn match       zoneDirective   /^\$TTL\s\+/      nextgroup=zoneTTL,zoneUnknown
@@ -29,15 +29,19 @@ syn match       zoneDirective   /^\$GENERATE\s/
 
 syn match       zoneUnknown     contained /\S\+/
 
-syn match       zoneOwnerName   contained /^[^[:space:]!"#$%&'()*+,\/:;<=>?@[\]\^`{|}~]\+\(\s\|;\)\@=/ nextgroup=zoneTTL,zoneClass,zoneRRType skipwhite
+syn match       zoneOwnerName   contained /^[^[:space:]!"#$%&'()*+,\/:;<=>?@[\]\^`{|}~]\+\(\s\|;\)\@=/ nextgroup=zoneTTL,zoneClass,zoneRRType,zoneRRHashType skipwhite
 syn match       zoneOrigin      contained  /[^[:space:]!"#$%&'()*+,\/:;<=>?@[\]\^`{|}~]\+\(\s\|;\|$\)\@=/
 syn match       zoneDomain      contained  /[^[:space:]!"#$%&'()*+,\/:;<=>?@[\]\^`{|}~]\+\(\s\|;\|$\)\@=/
 
 syn match       zoneSpecial     contained /^[@*.]\s/
-syn match       zoneTTL         contained /\s\@<=\d[0-9WwDdHhMmSs]*\(\s\|$\)\@=/ nextgroup=zoneClass,zoneRRType skipwhite
-syn keyword     zoneClass       contained IN CHAOS nextgroup=zoneRRType,zoneTTL skipwhite
-syn keyword     zoneRRType      contained A AAAA CDNSKEY CDS CERT CNAME DNAME HINFO MX NS OPENPGPKEY PTR RP SOA SRV SSHFP TLSA TXT SPF nextgroup=zoneRData skipwhite
+syn match       zoneOwnerName   contained /^\*\.[^[:space:]!"#$%&'()*+,\/:;<=>?@[\]\^`{|}~]\+\(\s\|;\)\@=/ nextgroup=zoneTTL,zoneClass,zoneRRType,zoneRRHashType skipwhite
+syn match       zoneTTL         contained /\s\@<=\d[0-9WwDdHhMmSs]*\(\s\|$\)\@=/ nextgroup=zoneClass,zoneRRType,zoneRRHashType skipwhite
+syn keyword     zoneClass       contained IN CHAOS nextgroup=zoneRRType,zoneRRHashType,zoneTTL skipwhite
+syn keyword     zoneRRType      contained A AAAA A6 CAA CERT CNAME DNAME HINFO LOC MX NAPTR NS NSEC NSEC3 NSEC3PARAM PTR RRSIG SOA SPF SRV TXT nextgroup=zoneRData skipwhite
+syn keyword     zoneRRHashType  contained CERT DNSKEY DS IPSECKEY SSHFP TLSA nextgroup=zoneRHashData skipwhite
 syn match       zoneRData       contained /[^;]*/ contains=zoneDomain,zoneIPAddr,zoneIP6Addr,zoneText,zoneNumber,zoneParen,zoneUnknown
+syn match       zoneRHashData   contained /[^;]*/ contains=zoneHash,zoneUnknown
+syn match       zoneHash        contained /\S\+/
 
 syn match       zoneIPAddr      contained /\<[0-9]\{1,3}\(\.[0-9]\{1,3}\)\{,3}\>/
 
@@ -91,7 +95,9 @@ if version >= 508 || !exists("did_bind_zone_syn_inits")
   HiLink zoneSpecial      Special
   HiLink zoneTTL          Constant
   HiLink zoneClass        Include
+  HiLink zoneHash         String
   HiLink zoneRRType       Type
+  HiLink zoneRRHashType   Type
   
   HiLink zoneIPAddr       Number
   HiLink zoneIP6Addr      Number
