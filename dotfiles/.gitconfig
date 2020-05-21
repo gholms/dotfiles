@@ -2,6 +2,7 @@
     detachedHead = false
     statusHints = false
 [alias]
+    dc = diff --cached
     ff = merge --ff-only HEAD@{upstream}
     graph = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(blue)<%an>%Creset' --abbrev-commit --date=relative
     fetchall = !git fetch $1 && git submodule foreach git fetch $1
