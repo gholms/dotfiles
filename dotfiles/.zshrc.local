@@ -71,12 +71,15 @@ elif isdarwin; then
     OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
 fi
 
-test -z "$XAUTHORITY" && battery=battery
+if [ -z "$DISPLAY" ]; then
+    battery=battery
+else
+    battery=
+fi
 
-grml_theme_add_token rc-no-space '%(?..%F{yellow}(%?%)%f )'
-grml_theme_add_token short-history '[%!] '
-zstyle :prompt:grml:left:items:battery pre ''
-zstyle :prompt:grml:left:items:battery post ' '
+grml_theme_add_token rc-no-space '%(?..%?)' '%F{yellow}%(?.. ()' '%(?..%))%f'
+grml_theme_add_token short-history '[%!]' '' ''
+
 if (( EUID != 0 )); then
     zstyle :prompt:grml:left:setup items short-history rc-no-space $battery user at host path vcs percent
     zstyle :prompt:grml:left:items:percent pre '%F{blue}'
@@ -87,7 +90,8 @@ else
     zstyle :prompt:grml:left:items:percent post '%f'
 fi
 zstyle :prompt:grml:right:setup items
-zstyle :prompt:grml:left:items:user pre '%F{blue}'
+zstyle :prompt:grml:left:items:battery pre ''
+zstyle :prompt:grml:left:items:user pre ' %F{blue}'
 zstyle :prompt:grml:left:items:user post '%f'
 zstyle :prompt:grml:left:items:at pre '%F{blue}'
 zstyle :prompt:grml:left:items:at post '%f'
