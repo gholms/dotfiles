@@ -79,16 +79,18 @@ fi
 
 grml_theme_add_token rc-no-space '%(?..%?)' '%F{yellow}%(?.. ()' '%(?..%))%f'
 grml_theme_add_token short-history '[%!]' '' ''
+grml_theme_add_token space ' ' '' ''
 
 if (( EUID != 0 )); then
     zstyle :prompt:grml:left:setup items short-history rc-no-space $battery user at host path vcs percent
     zstyle :prompt:grml:left:items:percent pre '%F{blue}'
     zstyle :prompt:grml:left:items:percent post '%f'
 else
-    zstyle :prompt:grml:left:setup items short-history rc-no-space $battery host path vcs percent
+    zstyle :prompt:grml:left:setup items short-history rc-no-space $battery space host path vcs percent
     zstyle :prompt:grml:left:items:percent pre '%F{red}'
     zstyle :prompt:grml:left:items:percent post '%f'
 fi
+
 zstyle :prompt:grml:right:setup items
 zstyle :prompt:grml:left:items:battery pre ''
 zstyle :prompt:grml:left:items:user pre ' %F{blue}'
