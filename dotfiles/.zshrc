@@ -108,6 +108,65 @@ if [[ $ZSH_PROFILE_RC -gt 0 ]] ; then
     zmodload zsh/zprof
 fi
 
+typeset -A GRML_STATUS_FEATURES
+
+function grml_status_feature () {
+    emulate -L zsh
+    local f=$1
+    local -i success=$2
+    if (( success == 0 )); then
+        GRML_STATUS_FEATURES[$f]=success
+    else
+        GRML_STATUS_FEATURES[$f]=failure
+    fi
+    return 0
+}
+
+function grml_status_features () {
+    emulate -L zsh
+    local mode=${1:-+-}
+    local this
+    if [[ $mode == -h ]] || [[ $mode == --help ]]; then
+        cat <<EOF
+grml_status_features [-h|--help|-|+|+-|FEATURE]
+
+Prints a summary of features the grml setup is trying to load. The
+result of loading a feature is recorded. This function lets you query
+the result.
+
+The function takes one argument: "-h" or "--help" to display this help
+text, "+" to display a list of all successfully loaded features, "-" for
+a list of all features that failed to load. "+-" to show a list of all
+features with their statuses.
+
+Any other word is considered to by a feature and prints its status.
+
+The default mode is "+-".
+EOF
+        return 0
+    fi
+    if [[ $mode != - ]] && [[ $mode != + ]] && [[ $mode != +- ]]; then
+        this="${GRML_STATUS_FEATURES[$mode]}"
+        if [[ -z $this ]]; then
+            printf 'unknown\n'
+            return 1
+        else
+            printf '%s\n' $this
+        fi
+        return 0
+    fi
+    for key in ${(ok)GRML_STATUS_FEATURES}; do
+        this="${GRML_STATUS_FEATURES[$key]}"
+        if [[ $this == success ]] && [[ $mode == *+* ]]; then
+            printf '%-16s %s\n' $key $this
+        fi
+        if [[ $this == failure ]] && [[ $mode == *-* ]]; then
+            printf '%-16s %s\n' $key $this
+        fi
+    done
+    return 0
+}
+
 # load .zshrc.pre to give the user the chance to overwrite the defaults
 [[ -r ${ZDOTDIR:-${HOME}}/.zshrc.pre ]] && source ${ZDOTDIR:-${HOME}}/.zshrc.pre
 
@@ -657,7 +716,8 @@ typeset -U path PATH cdpath CDPATH fpath FPATH manpath MANPATH
 # Load a few modules
 is4 && \
 for mod in parameter complist deltochar mathfunc ; do
-    zmodload -i zsh/${mod} 2>/dev/null || print "Notice: no ${mod} available :("
+    zmodload -i zsh/${mod} 2>/dev/null
+    grml_status_feature mod:$mod $?
 done && builtin unset -v mod
 
 # autoload zsh modules when they are referenced
@@ -672,10 +732,11 @@ COMPDUMPFILE=${COMPDUMPFILE:-${ZDOTDIR:-${HOME}}/.zcompdump}
 if zrcautoload compinit ; then
     typeset -a tmp
     zstyle -a ':grml:completion:compinit' arguments tmp
-    compinit -d ${COMPDUMPFILE} "${tmp[@]}" || print 'Notice: no compinit available :('
+    compinit -d ${COMPDUMPFILE} "${tmp[@]}"
+    grml_status_feature compinit $?
     unset tmp
 else
-    print 'Notice: no compinit available :('
+    grml_status_feature compinit 1
     function compdef { }
 fi
 
@@ -837,8 +898,18 @@ function grmlcomp () {
         _ssh_hosts=()
         _etc_hosts=()
     fi
+
+    local localname
+    if check_com hostname ; then
+      localname=$(hostname)
+    elif check_com hostnamectl ; then
+      localname=$(hostnamectl --static)
+    else
+      localname="$(uname -n)"
+    fi
+
     hosts=(
-        $(hostname)
+        "${localname}"
         "$_ssh_config_hosts[@]"
         "$_ssh_hosts[@]"
         "$_etc_hosts[@]"
@@ -2423,6 +2494,7 @@ function grml_prompt_fallback () {
 }
 
 if zrcautoload promptinit && promptinit 2>/dev/null ; then
+    grml_status_feature promptinit 0
     # Since we define the required functions in here and not in files in
     # $fpath, we need to stick the theme's name into `$prompt_themes'
     # ourselves, since promptinit does not pick them up otherwise.
@@ -2430,7 +2502,7 @@ if zrcautoload promptinit && promptinit 2>/dev/null ; then
     # Also, keep the array sorted...
     prompt_themes=( "${(@on)prompt_themes}" )
 else
-    print 'Notice: no promptinit available :('
+    grml_status_feature promptinit 1
     grml_prompt_fallback
     function precmd () { (( ${+functions[vcs_info]} )) && vcs_info; }
 fi
@@ -2468,6 +2540,9 @@ else
     function precmd () { (( ${+functions[vcs_info]} )) && vcs_info; }
 fi
 
+# make sure to use right prompt only when not running a command
+is41 && setopt transient_rprompt
+
 # Terminal-title wizardry
 
 function ESC_print () {
@@ -2492,7 +2567,7 @@ function grml_reset_screen_title () {
     # see http://www.faqs.org/docs/Linux-mini/Xterm-Title.html
     [[ ${NOTITLE:-} -gt 0 ]] && return 0
     case $TERM in
-        (xterm*|rxvt*)
+        (xterm*|rxvt*|alacritty)
             set_title ${(%):-"%n@%m: %~"}
             ;;
     esac
@@ -2509,8 +2584,11 @@ function grml_vcs_to_screen_title () {
 }
 
 function grml_maintain_name () {
-    # set hostname if not running on host with name 'grml'
-    if [[ -n "$HOSTNAME" ]] && [[ "$HOSTNAME" != $(hostname) ]] ; then
+    local localname
+    localname="$(uname -n)"
+
+    # set hostname if not running on local machine
+    if [[ -n "$HOSTNAME" ]] && [[ "$HOSTNAME" != "${localname}" ]] ; then
        NAME="@$HOSTNAME"
     fi
 }
@@ -2526,7 +2604,7 @@ function grml_cmd_to_screen_title () {
 
 function grml_control_xterm_title () {
     case $TERM in
-        (xterm*|rxvt*)
+        (xterm*|rxvt*|alacritty)
             set_title "${(%):-"%n@%m:"}" "$2"
             ;;
     esac
@@ -2802,6 +2880,17 @@ graphic chipset."
         function debian2hd () {
             echo "Installing debian to harddisk is possible by using grml-debootstrap."
             return 1
+        }
+    fi
+
+    if check_com -c tmate && check_com -c qrencode ; then
+        function grml-remote-support() {
+            tmate -L grml-remote-support new -s grml-remote-support -d
+            tmate -L grml-remote-support wait tmate-ready
+            tmate -L grml-remote-support display -p '#{tmate_ssh}' | qrencode -t ANSI
+            echo "tmate session: $(tmate -L grml-remote-support display -p '#{tmate_ssh}')"
+            echo
+            echo "Scan this QR code and send it to your support team."
         }
     fi
 }
@@ -3475,6 +3564,11 @@ function simple-extract () {
                 USES_STDIN=true
                 USES_STDOUT=false
                 ;;
+            *tar.zst)
+                DECOMP_CMD="tar --zstd -xvf -"
+                USES_STDIN=true
+                USES_STDOUT=false
+                ;;
             *tar)
                 DECOMP_CMD="tar -xvf -"
                 USES_STDIN=true
@@ -3517,6 +3611,11 @@ function simple-extract () {
                 ;;
             *(xz|lzma))
                 DECOMP_CMD="xz -d -c -"
+                USES_STDIN=true
+                USES_STDOUT=true
+                ;;
+            *zst)
+                DECOMP_CMD="zstd -d -c -"
                 USES_STDIN=true
                 USES_STDOUT=true
                 ;;
@@ -3805,6 +3904,8 @@ if (( GRMLSMALL_SPECIFIC > 0 )) && isgrmlsmall ; then
 fi
 
 zrclocal
+
+unfunction grml_status_feature
 
 ## genrefcard.pl settings
 
