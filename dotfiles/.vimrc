@@ -4,6 +4,8 @@ syntax on
 filetype plugin on " load file type plugins
 set encoding=utf-8
 
+set modeline     " Enable modelines
+set modelines=5  " Check 5 lines for modelines
 set noerrorbells " Don't make noise
 set novisualbell " Don't flash either
 set ruler        " Statusbar line numbers
