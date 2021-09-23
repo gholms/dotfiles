@@ -23,6 +23,8 @@
     prune = true
 [merge]
     defaultToUpstream = true
+[pull]
+    ff = only
 [push]
     default = upstream
 [rebase]
