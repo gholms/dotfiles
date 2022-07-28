@@ -28,6 +28,10 @@ umask 022
 
 # Aliases
 gpg2 --help >/dev/null 2>/dev/null && alias gpg=gpg2
+rrm() {
+    chmod -R u+rwX "$@"
+    rm -rf "$@"
+}
 
 # Keybindings:  viins mode + Home/End keys
 bindkey -e
