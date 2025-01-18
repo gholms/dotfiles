@@ -1,4 +1,3 @@
-/dotfiles/.ssh/config
 /dotfiles/.vim/backup/*
 /dotfiles/.vim/tmp/*
 /dotfiles/.vim/undo/*
