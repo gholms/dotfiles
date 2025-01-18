@@ -56,17 +56,15 @@ OS_COLOR_TABLE=(red yellow green cyan blue magenta)
 
 if [[ -f /etc/os-release ]]; then
     OS_NAME=$(. /etc/os-release; echo "$ID")
+    OS_NAME_LIKE=$(. /etc/os-release; echo "$ID_LIKE")
 
-    if [[ "$OS_NAME" = "fedora" ]]; then
-        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID")
-        OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
-    elif [[ "$OS_NAME" = "rhel" ]] || [[ "$OS_NAME" = "centos" ]]; then
-        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID" | cut -d. -f1)
-        OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
-    elif [[ "$OS_NAME" = "ubuntu" ]]; then
+    if [[ "$OS_NAME" = "ubuntu" ]]; then
         OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID")
         OS_COLOR=$OS_COLOR_TABLE[$(($(echo $OS_VERSION | cut -d. -f1) % 3 * 2 +
                                     $(echo $OS_VERSION | cut -d. -f2) / 10 + 1))]
+    elif [[ "$OS_NAME" = "debian" ]] || [[ "$OS_NAME" = "fedora" ]] || [[ "$OS_NAME" = "rhel" ]] || [[ "$OS_NAME_LIKE" = *rhel* ]]; then
+        OS_VERSION=$(. /etc/os-release; echo "$VERSION_ID" | cut -d. -f1)
+        OS_COLOR=$OS_COLOR_TABLE[$(($OS_VERSION % 6 + 1))]
     elif [[ "$OS_NAME" = "gentoo" ]]; then
         OS_COLOR=green
     fi
@@ -109,4 +107,5 @@ zstyle :prompt:grml:left:items:path post '%f'
 unset OS_COLOR
 unset OS_COLOR_TABLE
 unset OS_NAME
+unset OS_NAME_LIKE
 unset OS_VERSION
