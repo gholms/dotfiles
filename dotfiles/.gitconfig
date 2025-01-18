@@ -26,6 +26,7 @@
 [pull]
     ff = only
 [push]
+    autoSetupRemote = true
     default = upstream
 [rebase]
     autosquash = 1
