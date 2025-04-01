@@ -490,11 +490,13 @@ function xcat () {
 }
 
 # Remove these functions again, they are of use only in these
-# setup files. This should be called at the end of .zshrc.
+# setup files.
 function xunfunction () {
     emulate -L zsh
     local -a funcs
     local func
+    # TODO: Remove xunfunction in 2025.
+    echo "W: xunfunction is deprecated. Please remove it from your configuration."
     funcs=(salias xcat xsource xunfunction zrcautoload zrcautozle)
     for func in $funcs ; do
         [[ -n ${functions[$func]} ]] \
@@ -2617,16 +2619,21 @@ if [[ -r /etc/debian_version ]] ; then
           salias agi="apt-get install"
           salias au="apt-get update"
         fi
-        #a3# Execute \kbd{aptitude install}
-        salias ati="aptitude install"
-        #a3# Execute \kbd{aptitude update ; aptitude safe-upgrade}
-        salias -a up="aptitude update ; aptitude safe-upgrade"
+        if check_com -c aptitude ; then
+          #a3# Execute \kbd{aptitude install}
+          salias ati="aptitude install"
+          #a3# Execute \kbd{aptitude update ; aptitude safe-upgrade}
+          salias -a up="aptitude update ; aptitude safe-upgrade"
+        fi
         #a3# Execute \kbd{dpkg-buildpackage}
         alias dbp='dpkg-buildpackage'
         #a3# Execute \kbd{grep-excuses}
-        alias ge='grep-excuses'
+        if check_com -c grep-excuses ; then
+          alias ge='grep-excuses'
+        fi
         if check_com -c apt-file ; then
           alias afs='apt-file search'
+          alias afl='apt-file list'
         fi
     fi
 
@@ -3144,6 +3151,9 @@ alias insecssh='ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/nu
 #a2# scp with StrictHostKeyChecking=no \\&\quad and UserKnownHostsFile unset
 alias insecscp='scp -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null"'
 
+#a2# lsblk (list block devices) with the most useful columns
+alias llblk="lsblk -o +LABEL,PARTLABEL,UUID,FSTYPE,SERIAL"
+
 # useful functions
 
 #f5# Backup \kbd{file_or_folder {\rm to} file_or_folder\_timestamp}
@@ -3567,10 +3577,6 @@ if check_com -c hg ; then
         local i
         for i in $(hg status -marn "$@") ; diff -ubwd <(hg cat "$i") "$i"
     }
-
-    # build debian package
-    #a2# Alias for \kbd{hg-buildpackage}
-    alias hbp='hg-buildpackage'
 
     # execute commands on the versioned patch-queue from the current repos
     [[ -n "$GRML_NO_SMALL_ALIASES" ]] || alias mq='hg -R $(readlink -f $(hg root)/.hg/patches)'
