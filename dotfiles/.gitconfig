@@ -17,10 +17,19 @@
 [color "status"]
     updated = green
     untracked = cyan
+[commit]
+    verbose = true
 [diff]
+    algorithm = histogram
+    colorMoved = plain
+    mnemonicPrefix = true
     renames = copies
 [fetch]
     prune = true
+[help]
+    autocorrect = prompt
+[init]
+    defaultbranch = main
 [merge]
     defaultToUpstream = true
 [pull]
@@ -29,9 +38,12 @@
     autoSetupRemote = true
     default = upstream
 [rebase]
-    autosquash = 1
+    autoSquash = true
+    updateRefs = true
 [rerere]
-    enabled = 1
+    enabled = true
+[tag]
+    sort = version:refname
 [url "https://src.fedoraproject.org/"]
     insteadOf = fedora:
 [url "pkgs.fedoraproject.org:"]
