@@ -224,16 +224,6 @@ function isutfenv () {
 # check for user, if not running as root set $SUDO to sudo
 (( EUID != 0 )) && SUDO='sudo' || SUDO=''
 
-# change directory to home on first invocation of zsh
-# important for rungetty -> autologin
-# Thanks go to Bart Schaefer!
-isgrml && function checkhome () {
-    if [[ -z "$ALREADY_DID_CD_HOME" ]] ; then
-        export ALREADY_DID_CD_HOME=$HOME
-        cd
-    fi
-}
-
 # check for zsh v5.1+
 
 if ! [[ ${ZSH_VERSION} == 5.<1->*        \
@@ -350,6 +340,7 @@ setopt unset
 NOCOR=${NOCOR:-0}
 NOETCHOSTS=${NOETCHOSTS:-0}
 NOMENU=${NOMENU:-0}
+NOPATHHELPER=${NOPATHHELPER:-0}
 NOPRECMD=${NOPRECMD:-0}
 COMMAND_NOT_FOUND=${COMMAND_NOT_FOUND:-0}
 GRML_ZSH_CNF_HANDLER=${GRML_ZSH_CNF_HANDLER:-/usr/share/command-not-found/command-not-found}
@@ -489,22 +480,6 @@ function xcat () {
     return 0
 }
 
-# Remove these functions again, they are of use only in these
-# setup files.
-function xunfunction () {
-    emulate -L zsh
-    local -a funcs
-    local func
-    # TODO: Remove xunfunction in 2025.
-    echo "W: xunfunction is deprecated. Please remove it from your configuration."
-    funcs=(salias xcat xsource xunfunction zrcautoload zrcautozle)
-    for func in $funcs ; do
-        [[ -n ${functions[$func]} ]] \
-            && unfunction $func
-    done
-    return 0
-}
-
 # this allows us to stay in sync with grml's zshrc and put own
 # modifications in ~/.zshrc.local
 function zrclocal () {
@@ -518,7 +493,7 @@ if (( ZSH_NO_DEFAULT_LOCALE == 0 )); then
     xsource "/etc/default/locale"
 fi
 
-for var in LANG LC_ALL LC_MESSAGES ; do
+for var in LANG LANGUAGE LC_ALL LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME ; do
     [[ -n ${(P)var} ]] && export $var
 done
 builtin unset -v var
@@ -541,7 +516,7 @@ export MAIL=${MAIL:-/var/mail/$USER}
 check_com -c dircolors && eval $(dircolors -b)
 
 # Setup PATH from system defaults on macOS.
-if [[ -x /usr/libexec/path_helper ]]; then
+if [[ -x /usr/libexec/path_helper ]] && [[ "$NOPATHHELPER" -eq 0 ]] ; then
     eval $(/usr/libexec/path_helper -s)
 fi
 # Add MacPorts PATH on darwin/macOS.
@@ -1001,14 +976,17 @@ abk=(
     'G'    '|& grep '${grep_options:+"${grep_options[*]}"}
     'H'    '| head'
     'Hl'   ' --help |& less -r'    #d (Display help in pager)
+    'J'    '| jq'
+    'K'    '| keep'
     'L'    '| less'
     'LL'   '|& less -r'
     'M'    '| most'
     'N'    '&>/dev/null'           #d (No Output)
-    'R'    '| tr A-z N-za-m'       #d (ROT13)
+    'R'    '| tr A-Za-z N-ZA-Mn-za-m' #d (ROT13)
     'SL'   '| sort | less'
     'S'    '| sort -u'
     'T'    '| tail'
+    'TS'   '| ts "%F %H:%M:%.S"'
     'V'    '|& vim -'
 #A# end
     'co'   './configure && make && sudo make install'
@@ -1562,7 +1540,7 @@ if zstyle -T ':grml:chpwd:dirstack' enable; then
 
     function chpwd () {
         (( ZSH_SUBSHELL )) && return
-        (( $DIRSTACKSIZE <= 0 )) && return
+        (( DIRSTACKSIZE <= 0 )) && return
         [[ -z $DIRSTACKFILE ]] && return
         grml_dirstack_filter $PWD && return
         GRML_PERSISTENT_DIRSTACK=(
@@ -2493,38 +2471,6 @@ if [[ -x /sbin/kexec ]] && [[ -r /proc/cmdline ]] ; then
     alias "$(uname -r)-reboot"="kexec -l --initrd=/boot/initrd.img-"$(uname -r)" --command-line=\"$(cat /proc/cmdline)\" /boot/vmlinuz-"$(uname -r)""
 fi
 
-# see http://www.cl.cam.ac.uk/~mgk25/unicode.html#term for details
-alias term2iso="echo 'Setting terminal to iso mode' ; print -n '\e%@'"
-alias term2utf="echo 'Setting terminal to utf-8 mode'; print -n '\e%G'"
-
-# make sure it is not assigned yet
-[[ -n ${aliases[utf2iso]} ]] && unalias utf2iso
-function utf2iso () {
-    if isutfenv ; then
-        local ENV
-        for ENV in $(env | command grep -i '.utf') ; do
-            eval export "$(echo $ENV | sed 's/UTF-8/iso885915/ ; s/utf8/iso885915/')"
-        done
-    fi
-}
-
-# make sure it is not assigned yet
-[[ -n ${aliases[iso2utf]} ]] && unalias iso2utf
-function iso2utf () {
-    if ! isutfenv ; then
-        local ENV
-        for ENV in $(env | command grep -i '\.iso') ; do
-            eval export "$(echo $ENV | sed 's/iso.*/UTF-8/ ; s/ISO.*/UTF-8/')"
-        done
-    fi
-}
-
-# especially for roadwarriors using GNU screen and ssh:
-if ! check_com asc &>/dev/null ; then
-  function asc () { autossh -t "$@" 'screen -RdU' }
-  compdef asc=ssh
-fi
-
 #f1# Hints for the use of zsh on grml
 function zsh-help () {
     print "$bg[white]$fg[black]
@@ -2625,10 +2571,12 @@ if [[ -r /etc/debian_version ]] ; then
           #a3# Execute \kbd{aptitude update ; aptitude safe-upgrade}
           salias -a up="aptitude update ; aptitude safe-upgrade"
         fi
-        #a3# Execute \kbd{dpkg-buildpackage}
-        alias dbp='dpkg-buildpackage'
-        #a3# Execute \kbd{grep-excuses}
+        if check_com -c dpkg-buildpackage ; then
+          #a3# Execute \kbd{dpkg-buildpackage}
+          alias dbp='dpkg-buildpackage'
+        fi
         if check_com -c grep-excuses ; then
+          #a3# Execute \kbd{grep-excuses}
           alias ge='grep-excuses'
         fi
         if check_com -c apt-file ; then
@@ -2668,8 +2616,10 @@ fi
 
 # grmlstuff
 function grmlstuff () {
-    #a1# Output version of running grml
-    alias grml-version='cat /etc/grml_version'
+    if [ -r /etc/grml_version ]; then
+      #a1# Output version of running grml
+      alias grml-version='cat /etc/grml_version'
+    fi
 
     if check_com -c grml-debootstrap ; then
         function debian2hd () {
@@ -2691,7 +2641,6 @@ function grmlstuff () {
 }
 
 # now run the functions
-isgrml && checkhome
 isgrml && grmlstuff
 grmlcomp
 
@@ -2923,32 +2872,16 @@ compdef _functions edfunc
 #m# f6 Reload() \kbd{service \em{process}}\quad\kbd{reload}
 #m# f6 Force-Reload() \kbd{service \em{process}}\quad\kbd{force-reload}
 #m# f6 Status() \kbd{service \em{process}}\quad\kbd{status}
-if [[ -d /etc/init.d || -d /etc/service ]] ; then
+if [[ -d /etc/init.d ]] ; then
     function __start_stop () {
         local action_="${1:l}"  # e.g Start/Stop/Restart
         local service_="$2"
         local param_="$3"
 
-        local service_target_="$(readlink /etc/init.d/$service_)"
-        if [[ $service_target_ == "/usr/bin/sv" ]]; then
-            # runit
-            case "${action_}" in
-                start) if [[ ! -e /etc/service/$service_ ]]; then
-                           $SUDO ln -s "/etc/sv/$service_" "/etc/service/"
-                       else
-                           $SUDO "/etc/init.d/$service_" "${action_}" "$param_"
-                       fi ;;
-                # there is no reload in runits sysv emulation
-                reload) $SUDO "/etc/init.d/$service_" "force-reload" "$param_" ;;
-                *) $SUDO "/etc/init.d/$service_" "${action_}" "$param_" ;;
-            esac
+        if check_com -c service ; then
+          $SUDO service "$service_" "${action_}" "$param_"
         else
-            # sysv/sysvinit-utils, upstart
-            if check_com -c service ; then
-              $SUDO service "$service_" "${action_}" "$param_"
-            else
-              $SUDO "/etc/init.d/$service_" "${action_}" "$param_"
-            fi
+          $SUDO "/etc/init.d/$service_" "${action_}" "$param_"
         fi
     }
 
@@ -3002,7 +2935,7 @@ function H-Glob () {
   chmod 644 *(.^x)      # make all plain non-executable files publically readable
   print -l *(.c|.h)     # Lists *.c and *.h
   print **/*(g:users:)  # Recursively match all files that are owned by group 'users'
-  echo /proc/*/cwd(:h:t:s/self//) # Analogous to >ps ax | awk '{print $1}'<"
+  echo /proc/*/cwd(:h:t:s/self//) # Analogous to >ps ax | awk '{print \$1}'<"
 }
 alias help-zshglob=H-Glob
 
@@ -3264,7 +3197,17 @@ function mkcd () {
 
 #f5# Create temporary directory and \kbd{cd} to it
 function cdt () {
-    builtin cd "$(mktemp -d)"
+    local -a cdttemplate
+    if [ "$#" -eq 1 ]; then
+        if isfreebsd; then
+            # mktemp(1) on FreeBSD doesn't behave the same, cf.
+            # https://man.freebsd.org/cgi/man.cgi?query=mktemp#OPTIONS
+            cdttemplate=(-t "$1")
+        else
+            cdttemplate=(-t "$1".XXXXXXX)
+        fi
+    fi
+    builtin cd "$(mktemp -d ${cdttemplate[@]})"
     builtin pwd
 }
 
@@ -3307,21 +3250,23 @@ fi
 #  $ awk -F ':' '{ print $2" : "$1" "$3 }' \
 #    /usr/local/lib/words/en-de.ISO-8859-1.vok > ~/.translate/de-en.ISO-8859-1.vok
 #f5# Translates a word
-function trans () {
-    emulate -L zsh
-    case "$1" in
-        -[dD]*)
-            translate -l de-en $2
-            ;;
-        -[eE]*)
-            translate -l en-de $2
-            ;;
-        *)
-            echo "Usage: $0 { -D | -E }"
-            echo "         -D == German to English"
-            echo "         -E == English to German"
-    esac
-}
+if ! check_com -c trans; then
+  function trans () {
+      emulate -L zsh
+      case "$1" in
+          -[dD]*)
+              translate -l de-en $2
+              ;;
+          -[eE]*)
+              translate -l en-de $2
+              ;;
+          *)
+              echo "Usage: $0 { -D | -E }"
+              echo "         -D == German to English"
+              echo "         -E == English to German"
+      esac
+  }
+fi
 
 # Usage: simple-extract <file>
 # Using option -d deletes the original archive file.
@@ -3496,6 +3441,16 @@ function _simple_extract () {
 }
 compdef _simple_extract simple-extract
 [[ -n "$GRML_NO_SMALL_ALIASES" ]] || alias se=simple-extract
+
+#f5# Show "public" IP address of current system on stdout. Requires network access and curl(1).
+function myip () {
+    if [[ $# == 0 ]] || [[ $# == 1 && $1 == "-4" ]] || [[ $# == 1 && $1 == "-6" ]] ; then
+        curl "$@" https://myip.grml.org -H 'User-Agent: grml-etc-core-zshrc'
+    else
+        printf 'usage: myip [-4|-6]\n' >&2
+        return 1
+    fi
+}
 
 #f5# Change the xterm title from within GNU-screen
 function xtrename () {
